@@ -1,0 +1,20 @@
+{
+  "name": "NEO-M8N GPS",
+  "author": "Jakub Pawlina",
+  "pins": [
+    "VCC",
+    "GND",
+    "TX",
+    "RX"
+  ],
+  "controls": [
+    {
+      "id": "scenario",
+      "label": "Scenario",
+      "type": "range",
+      "min": 0,
+      "max": 5,
+      "step": 1
+    }
+  ]
+}
