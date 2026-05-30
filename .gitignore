@@ -1,0 +1,3 @@
+simulation/generated/
+*.pyc
+__pycache__/
