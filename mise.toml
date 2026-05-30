@@ -1,0 +1,43 @@
+[tools]
+python = "3.13"
+"aqua:arduino/arduino-cli" = "1.4.1"
+
+# Doxygen is not available through mise's aqua registry as aqua:doxygen/doxygen.
+# Install it separately with:
+# sudo apt update && sudo apt install doxygen
+
+[tasks."firmware:bootstrap"]
+description = "Install Arduino core and libraries required by the firmware project"
+run = "./tools/setup-firmware-toolchain.sh"
+
+[tasks."firmware:test"]
+description = "Run host-side firmware tests"
+run = "./tools/run-firmware-checks.sh test"
+
+[tasks."firmware:compile"]
+description = "Compile the firmware for esp32:esp32:esp32"
+run = "./tools/run-firmware-checks.sh compile"
+
+[tasks."firmware:verify"]
+description = "Run the host-side tests and the ESP32 compile check"
+run = "./tools/run-firmware-checks.sh test && ./tools/run-firmware-checks.sh compile"
+
+[tasks."firmware:docs"]
+description = "Generate firmware API docs with Doxygen"
+run = "./tools/run-firmware-checks.sh docs"
+
+[tasks."docs:serve"]
+description = "Serve the generated firmware API docs locally"
+run = "./tools/serve-firmware-docs.sh"
+
+[tasks."deploy:install"]
+description = "Install or upgrade the Raspberry Pi service on the current machine"
+run = "./tools/deploy-rpi-service.sh"
+
+[tasks."deploy:uninstall"]
+description = "Remove the Raspberry Pi service from the current machine"
+run = "./tools/deploy-rpi-service.sh --uninstall"
+
+[tasks."simulation:generate"]
+description = "Regenerate the local Wokwi project from the source firmware"
+run = "python3 tools/generate-wokwi-project.py"

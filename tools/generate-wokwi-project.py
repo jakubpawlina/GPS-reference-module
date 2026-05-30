@@ -8,7 +8,7 @@ import shutil
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parent.parent
 FIRMWARE = ROOT / "firmware" / "gps_reference_module" / "gps_reference_module.ino"
 ASSETS_DIR = ROOT / "simulation" / "assets"
 DEFAULT_OUTPUT_DIR = ROOT / "simulation" / "wokwi"
@@ -70,7 +70,12 @@ def main() -> int:
     ensure_inputs()
 
     generated_path = generate_wokwi(args.output_dir)
-    print(f"generated {generated_path.relative_to(ROOT)}")
+    try:
+        display_path = generated_path.relative_to(ROOT)
+    except ValueError:
+        display_path = generated_path
+
+    print(f"generated {display_path}")
 
     return 0
 

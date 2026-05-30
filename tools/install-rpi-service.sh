@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# GPS Reference Module - Raspberry Pi setup script
-# Usage: sudo bash setup.sh [--uninstall]
+# GPS Reference Module - Raspberry Pi install script
+# Usage: sudo bash tools/install-rpi-service.sh [--uninstall]
 set -euo pipefail
 
 # ── Colours ────────────────────────────────────────────────────────────────────
@@ -20,11 +20,12 @@ HTTP_PORT="${GPS_HTTP_PORT:-8000}"
 MAX_DB_BYTES="${GPS_MAX_DB_BYTES:-4294967296}"   # 4 GB
 CLOUD_WEBHOOK="${GPS_CLOUD_WEBHOOK:-}"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SERVICE_DIR="$ROOT_DIR/service"
 REQUIRED_FILES=(main.py api.py database.py reader.py config.py requirements.txt gps-reference.service)
 
 # ── Guard: must run as root ────────────────────────────────────────────────────
-[[ $EUID -eq 0 ]] || die "Run with sudo: sudo bash setup.sh"
+[[ $EUID -eq 0 ]] || die "Run with sudo: sudo bash tools/install-rpi-service.sh"
 
 # ── Uninstall path ─────────────────────────────────────────────────────────────
 if [[ "${1:-}" == "--uninstall" ]]; then
@@ -47,7 +48,7 @@ echo ""
 # ── Pre-flight checks ──────────────────────────────────────────────────────────
 step "Checking source files…"
 for f in "${REQUIRED_FILES[@]}"; do
-    [[ -f "$SCRIPT_DIR/$f" ]] || die "Missing source file: $SCRIPT_DIR/$f"
+    [[ -f "$SERVICE_DIR/$f" ]] || die "Missing source file: $SERVICE_DIR/$f"
 done
 info "All source files present"
 
@@ -77,7 +78,7 @@ info "$DATA_DIR  (database, owned by $APP_USER)"
 # ── Copy application files ─────────────────────────────────────────────────────
 step "Copying application files…"
 for f in main.py api.py database.py reader.py config.py requirements.txt; do
-    cp "$SCRIPT_DIR/$f" "$INSTALL_DIR/$f"
+    cp "$SERVICE_DIR/$f" "$INSTALL_DIR/$f"
     info "  → $f"
 done
 chown -R root:root "$INSTALL_DIR"
@@ -119,7 +120,7 @@ fi
 
 # ── Systemd service ────────────────────────────────────────────────────────────
 step "Installing systemd service…"
-cp "$SCRIPT_DIR/gps-reference.service" "/etc/systemd/system/${SERVICE}.service"
+cp "$SERVICE_DIR/gps-reference.service" "/etc/systemd/system/${SERVICE}.service"
 
 OVERRIDE_DIR="/etc/systemd/system/${SERVICE}.service.d"
 mkdir -p "$OVERRIDE_DIR"
@@ -183,5 +184,5 @@ echo ""
 echo -e "  Useful commands:"
 echo -e "    sudo systemctl restart ${SERVICE}"
 echo -e "    sudo systemctl stop    ${SERVICE}"
-echo -e "    sudo bash setup.sh --uninstall"
+echo -e "    sudo bash tools/install-rpi-service.sh --uninstall"
 echo ""
