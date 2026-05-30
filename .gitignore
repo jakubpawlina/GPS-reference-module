@@ -1,3 +1,9 @@
 simulation/wokwi/
 *.pyc
 __pycache__/
+tests/.build/
+firmware/gps_reference_module/build/
+
+.codex
+.gemini
+.claude
