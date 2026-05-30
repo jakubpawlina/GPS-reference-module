@@ -81,7 +81,7 @@
     [ "esp:TX", "$serialMonitor:RX", "", [] ],
     [ "esp:RX", "$serialMonitor:TX", "", [] ],
     [ "esp:3V3", "oled:VCC", "red", [ "h-33.81", "v297.2", "h451.2", "v-220.8", "h57.45" ] ],
-    [ "esp:GND.1", "oled:GND", "black", [ "h-24.21", "v162.8", "h432", "v-220.8", "h57.6" ] ],
+    [ "esp:GND.1", "oled:GND", "black", [ "h-24.21", "v162.8", "h432", "v-201.2", "h53.16" ] ],
     [ "esp:22", "oled:SCL", "blue", [ "h0" ] ],
     [ "esp:19", "oled:SDA", "green", [ "h0" ] ],
     [ "esp:3V3", "gps:VCC", "red", [ "h-33.81", "v-86.8", "v336" ] ],
