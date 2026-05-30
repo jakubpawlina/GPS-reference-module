@@ -1,0 +1,23 @@
+[Unit]
+Description=GPS Reference Module Service
+After=network.target
+
+[Service]
+Type=simple
+User=refmod
+Group=refmod
+WorkingDirectory=/opt/gps-reference
+ExecStart=/opt/gps-reference/venv/bin/python main.py
+Restart=always
+RestartSec=5
+TimeoutStopSec=10
+
+# Override any of these in /etc/systemd/system/gps-reference.service.d/local.conf
+Environment=GPS_SERIAL_PORT=/dev/ttyUSB0
+Environment=GPS_DB_PATH=/var/lib/gps-reference/data.db
+Environment=GPS_HTTP_PORT=8000
+Environment=GPS_MAX_DB_BYTES=4294967296
+# Environment=GPS_CLOUD_WEBHOOK=https://your-endpoint/ingest
+
+[Install]
+WantedBy=multi-user.target
