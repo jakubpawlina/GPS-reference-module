@@ -28,7 +28,7 @@ namespace PinConfig {
 
   constexpr uint8_t LED_ERROR   = 23;  // Red
   constexpr uint8_t LED_DATA    = 21;  // Blue
-  constexpr uint8_t LED_WARNING =  5;  // Yellow  (GPIO5 is adjacent to GPS_TX/GPIO17 – see hardware.md)
+  constexpr uint8_t LED_WARNING =  5;  // Yellow  (GPIO5 is adjacent to GPS_TX/GPIO17 - see hardware.md)
   constexpr uint8_t LED_OK      = 25;  // Green   (GPIO25, right side, clear of I2C/UART pins)
 }
 
@@ -776,10 +776,10 @@ static void setLedState(uint8_t pin, bool on) {
     pinMode(pin, OUTPUT);
     digitalWrite(pin, HIGH);
   } else if (pin == PinConfig::LED_DATA || pin == PinConfig::LED_ERROR) {
-    pinMode(pin, INPUT_PULLDOWN);   // I2C-adjacent – cannot drive LOW
+    pinMode(pin, INPUT_PULLDOWN);   // I2C-adjacent - cannot drive LOW
   } else {
     pinMode(pin, OUTPUT);
-    digitalWrite(pin, LOW);         // not I2C-adjacent – OUTPUT LOW is safe
+    digitalWrite(pin, LOW);         // not I2C-adjacent - OUTPUT LOW is safe
   }
 }
 
@@ -1048,7 +1048,7 @@ static uint8_t probeOledAddress() {
   delay(5);
 
   Wire.begin(PinConfig::OLED_SDA, PinConfig::OLED_SCL);
-  Wire.setClock(100000);  // 100 kHz – more reliable than 400 kHz on cheap modules
+  Wire.setClock(100000);  // 100 kHz - more reliable than 400 kHz on cheap modules
   delay(10);
 
   const uint8_t candidates[] = {
@@ -1070,7 +1070,7 @@ static void initializeDisplay() {
   detectedOledAddress = probeOledAddress();
 
   if (detectedOledAddress == 0) {
-    Serial.println(F("{\"type\":\"error\",\"msg\":\"OLED not found on I2C – check SDA/SCL/VCC wiring\"}"));
+    Serial.println(F("{\"type\":\"error\",\"msg\":\"OLED not found on I2C - check SDA/SCL/VCC wiring\"}"));
     return;
   }
 
