@@ -29,26 +29,15 @@ in SQLite and exposes a browser dashboard, REST API, and SSE stream.
 - Includes host-side firmware tests and a complete Wokwi simulation
 - Installs as a supervised `systemd` service on Raspberry Pi
 
-## Contents
+## Navigation
 
-- [Preview](#preview)
-- [Quick Start](#quick-start)
-- [Requirements](#requirements)
-- [System Behavior](#system-behavior)
-- [Simulation Scenarios](#simulation-scenarios)
-- [Development](#development)
-- [Configuration](#configuration)
-- [Documentation](#documentation)
-
-## Architecture
-
-```mermaid
-flowchart LR
-    GPS[GPS/GNSS receiver<br/>NMEA 0183] -->|UART 9600| ESP[ESP32<br/>parse and diagnose]
-    ESP --> OLED[OLED and status LEDs]
-    ESP -->|USB serial<br/>NDJSON 115200| RPI[Raspberry Pi<br/>FastAPI and SQLite]
-    RPI -->|REST and SSE<br/>HTTP 8000| CLIENTS[Browsers and clients]
-```
+| Getting Started | Technical Reference | Project |
+|---|---|---|
+| [Prerequisites](#prerequisites) | [Architecture](#architecture) | [Development](#development) |
+| [Quick Start](#quick-start) | [Diagnostic States](#diagnostic-states) | [Contributing](#contributing) |
+| [Run the Simulation](#2-run-the-simulation) | [Data and API](#data-and-api) | [Repository Layout](#repository-layout) |
+| [Deploy to Raspberry Pi](#4-deploy-the-raspberry-pi-service) | [Simulation Reference](#simulation-reference) | [Documentation](#documentation) |
+|  | [Service Configuration](#service-configuration) |  |
 
 ## Preview
 
@@ -67,91 +56,13 @@ receiver, SSD1306 OLED, and status LEDs.
   <img src="docs/images/simulation/wokwi-state-no-fix.png" alt="Wokwi simulation showing GPS data with no position fix" width="900">
 </p>
 
-## Quick Start
+---
 
-### 1. Prepare the development environment
+## Getting Started
 
-Install [Git](https://git-scm.com/) and
-[`mise`](https://mise.jdx.dev/getting-started.html), then clone and bootstrap
-the project:
+### Prerequisites
 
-```bash
-git clone https://github.com/jakubpawlina/GPS-reference-module.git
-cd GPS-reference-module
-mise install
-mise run firmware:bootstrap
-```
-
-This installs the pinned Python and Arduino CLI versions, the ESP32 Arduino
-core, and the required Adafruit display libraries.
-
-### 2. Run the simulation
-
-Install Docker, Visual Studio Code, and the
-[Wokwi for VS Code extension](https://marketplace.visualstudio.com/items?itemName=Wokwi.wokwi-vscode).
-Then build the complete simulator:
-
-```bash
-mise run simulation:build
-```
-
-Open `simulation/wokwi/` as a VS Code workspace and run
-**Wokwi: Start Simulator** from the command palette. Use `Ctrl+Shift+B` to
-rebuild after firmware changes.
-
-> [!NOTE]
-> Docker is required only to compile the custom Wokwi GPS chip. It is not
-> required for firmware tests, ESP32 builds, or Raspberry Pi deployment.
-
-### 3. Build and flash the ESP32
-
-Connect the board and adjust the serial port if necessary:
-
-```bash
-mise run firmware:compile
-arduino-cli compile --upload \
-  --fqbn esp32:esp32:esp32 \
-  --port /dev/ttyUSB0 \
-  firmware/gps_reference_module
-```
-
-### 4. Deploy the Raspberry Pi service
-
-Copy the runtime files to the Raspberry Pi:
-
-```bash
-ssh pi@<rpi-ip> 'mkdir -p ~/gps-reference'
-scp -r service tools pi@<rpi-ip>:~/gps-reference/
-ssh pi@<rpi-ip>
-cd ~/gps-reference
-id refmod >/dev/null 2>&1 || sudo useradd --system --create-home --groups dialout refmod
-GPS_APP_USER=refmod ./tools/deploy-rpi-service.sh
-```
-
-The installer adds system packages, creates a virtual environment, installs
-Python dependencies, configures serial access, and installs the `systemd`
-service. A logout or reboot may be required when the user is first added to the
-`dialout` group.
-
-> [!IMPORTANT]
-> The HTTP API has no authentication and permits cross-origin requests. Deploy
-> it only on a trusted network or place it behind an authenticated reverse proxy.
-
-### 5. Verify the system
-
-Connect the ESP32 to the Raspberry Pi over USB and open:
-
-| URL | Purpose |
-|---|---|
-| `http://<rpi-ip>:8000/` | Live dashboard |
-| `http://<rpi-ip>:8000/docs` | Interactive Swagger API |
-| `http://<rpi-ip>:8000/redoc` | ReDoc API reference |
-| `http://<rpi-ip>:8000/api/status` | Current GPS state |
-| `http://<rpi-ip>:8000/api/stats` | Storage statistics |
-
-## Requirements
-
-### Manual prerequisites
+#### Manual requirements
 
 | Environment | Requirement | When it is needed |
 |---|---|---|
@@ -171,7 +82,7 @@ sudo apt update
 sudo apt install g++ doxygen
 ```
 
-### Installed automatically
+#### Installed automatically
 
 `mise install` and `mise run firmware:bootstrap` install:
 
@@ -182,12 +93,12 @@ sudo apt install g++ doxygen
 - Adafruit GFX Library
 
 `mise run simulation:build` downloads the official
-`wokwi/builder-clang-wasm` container image when needed.
+`wokwi/builder-clang-wasm` image when required.
 
-The Raspberry Pi deployment script installs `python3-pip`, `python3-venv`,
-`python3-dev`, `curl`, and all packages in `service/requirements.txt`.
+The Raspberry Pi installer adds `python3-pip`, `python3-venv`, `python3-dev`,
+`curl`, and all packages from `service/requirements.txt`.
 
-### Physical hardware
+#### Physical hardware
 
 - ESP32 development board
 - NMEA 0183 GPS/GNSS receiver configured for 9600 baud
@@ -197,12 +108,103 @@ The Raspberry Pi deployment script installs `python3-pip`, `python3-venv`,
 - Raspberry Pi running Raspberry Pi OS or another Debian-based distribution
 - USB cables for flashing and ESP32-to-Raspberry Pi communication
 
-See [docs/hardware.md](docs/hardware.md) for the full bill of materials,
+See [docs/hardware.md](docs/hardware.md) for the complete bill of materials,
 wiring, power requirements, and GPIO warnings.
 
-## System Behavior
+### Quick Start
 
-### Diagnostic states
+#### 1. Prepare the development environment
+
+Install [Git](https://git-scm.com/) and
+[`mise`](https://mise.jdx.dev/getting-started.html), then clone and bootstrap
+the project:
+
+```bash
+git clone https://github.com/jakubpawlina/GPS-reference-module.git
+cd GPS-reference-module
+mise install
+mise run firmware:bootstrap
+```
+
+#### 2. Run the simulation
+
+Install Docker, Visual Studio Code, and the
+[Wokwi for VS Code extension](https://marketplace.visualstudio.com/items?itemName=Wokwi.wokwi-vscode),
+then build the complete simulator:
+
+```bash
+mise run simulation:build
+```
+
+Open `simulation/wokwi/` as a VS Code workspace and run
+**Wokwi: Start Simulator** from the command palette. Use `Ctrl+Shift+B` to
+rebuild after firmware changes.
+
+> [!NOTE]
+> Docker is required only to compile the custom Wokwi GPS chip. It is not
+> required for firmware tests, ESP32 builds, or Raspberry Pi deployment.
+
+#### 3. Build and flash the ESP32
+
+Connect the board and adjust the serial port if necessary:
+
+```bash
+mise run firmware:compile
+arduino-cli compile --upload \
+  --fqbn esp32:esp32:esp32 \
+  --port /dev/ttyUSB0 \
+  firmware/gps_reference_module
+```
+
+#### 4. Deploy the Raspberry Pi service
+
+Copy the runtime files to the Raspberry Pi:
+
+```bash
+ssh pi@<rpi-ip> 'mkdir -p ~/gps-reference'
+scp -r service tools pi@<rpi-ip>:~/gps-reference/
+ssh pi@<rpi-ip>
+cd ~/gps-reference
+id refmod >/dev/null 2>&1 || sudo useradd --system --create-home --groups dialout refmod
+GPS_APP_USER=refmod ./tools/deploy-rpi-service.sh
+```
+
+The installer adds system packages, creates a virtual environment, installs
+Python dependencies, configures serial access, and installs the `systemd`
+service. A logout or reboot may be required when the user is first added to the
+`dialout` group.
+
+> [!IMPORTANT]
+> The HTTP API has no authentication and permits cross-origin requests. Deploy
+> it only on a trusted network or behind an authenticated reverse proxy.
+
+#### 5. Verify the system
+
+Connect the ESP32 to the Raspberry Pi over USB and open:
+
+| URL | Purpose |
+|---|---|
+| `http://<rpi-ip>:8000/` | Live dashboard |
+| `http://<rpi-ip>:8000/docs` | Interactive Swagger API |
+| `http://<rpi-ip>:8000/redoc` | ReDoc API reference |
+| `http://<rpi-ip>:8000/api/status` | Current GPS state |
+| `http://<rpi-ip>:8000/api/stats` | Storage statistics |
+
+---
+
+## Technical Reference
+
+### Architecture
+
+```mermaid
+flowchart LR
+    GPS[GPS/GNSS receiver<br/>NMEA 0183] -->|UART 9600| ESP[ESP32<br/>parse and diagnose]
+    ESP --> OLED[OLED and status LEDs]
+    ESP -->|USB serial<br/>NDJSON 115200| RPI[Raspberry Pi<br/>FastAPI and SQLite]
+    RPI -->|REST and SSE<br/>HTTP 8000| CLIENTS[Browsers and clients]
+```
+
+### Diagnostic States
 
 | State | LEDs | Meaning |
 |---|---|---|
@@ -212,7 +214,7 @@ wiring, power requirements, and GPIO warnings.
 | `NO_FIX` | Red + Blue | NMEA data is arriving without a position fix |
 | `NO_GPS_DATA` | Red | No recent NMEA data |
 
-### Data flow
+### Data and API
 
 The ESP32 emits newline-delimited JSON at 115200 baud:
 
@@ -220,10 +222,8 @@ The ESP32 emits newline-delimited JSON at 115200 baud:
 - `raw_nmea`: original NMEA sentence and validation result
 - `parsed_state`: current parsed position and diagnostic state
 
-The Raspberry Pi service keeps the latest state in memory, stores position
-records in SQLite, and serves live and historical data over HTTP.
-
-### Main API endpoints
+The Raspberry Pi keeps the latest state in memory, stores position records in
+SQLite, and serves live and historical data over HTTP.
 
 | Method | Endpoint | Purpose |
 |---|---|---|
@@ -234,7 +234,7 @@ records in SQLite, and serves live and historical data over HTTP.
 | `GET` | `/api/stats` | Database size and record statistics |
 | `POST` | `/api/upload` | Upload records to a configured webhook |
 
-## Simulation Scenarios
+### Simulation Reference
 
 The custom GPS component exposes a **Scenario** control:
 
@@ -251,32 +251,20 @@ The build creates an ignored `simulation/wokwi/` workspace containing the
 firmware BIN and ELF files, custom GPS WebAssembly component, Wokwi
 configuration, diagram, and firmware sources.
 
-## Development
+### Service Configuration
 
-Common project tasks:
+The Raspberry Pi service is configured through environment variables in
+`/etc/systemd/system/gps-reference.service.d/local.conf`:
 
-| Command | Purpose |
-|---|---|
-| `mise run firmware:bootstrap` | Install the ESP32 core and Arduino libraries |
-| `mise run firmware:test` | Run host-side firmware logic tests |
-| `mise run firmware:compile` | Compile firmware for ESP32 |
-| `mise run firmware:verify` | Run tests and firmware compilation |
-| `mise run simulation:generate` | Generate simulator sources without compiling |
-| `mise run simulation:build` | Build the complete VS Code simulation |
-| `mise run firmware:docs` | Generate Doxygen documentation |
-| `mise run docs:serve` | Serve generated firmware documentation locally |
-| `mise run deploy:install` | Install or upgrade the service on the current Pi |
-| `mise run deploy:uninstall` | Remove the service while preserving its data |
-
-## Configuration
-
-The Raspberry Pi service is configured through environment variables in:
-
-```text
-/etc/systemd/system/gps-reference.service.d/local.conf
+```ini
+[Service]
+Environment=GPS_SERIAL_PORT=/dev/ttyUSB0
+Environment=GPS_BAUD_RATE=115200
+Environment=GPS_DB_PATH=/var/lib/gps-reference/data.db
+Environment=GPS_MAX_DB_BYTES=4294967296
+Environment=GPS_HTTP_PORT=8000
+# Environment=GPS_CLOUD_WEBHOOK=https://example.com/ingest
 ```
-
-Important settings:
 
 | Variable | Default | Purpose |
 |---|---|---|
@@ -294,7 +282,68 @@ sudo systemctl daemon-reload
 sudo systemctl restart gps-reference
 ```
 
-## Repository Layout
+---
+
+## Project Development
+
+### Development
+
+Common project tasks:
+
+| Command | Purpose |
+|---|---|
+| `mise run firmware:bootstrap` | Install the ESP32 core and Arduino libraries |
+| `mise run firmware:test` | Run host-side firmware logic tests |
+| `mise run firmware:compile` | Compile firmware for ESP32 |
+| `mise run firmware:verify` | Run tests and firmware compilation |
+| `mise run simulation:generate` | Generate simulator sources without compiling |
+| `mise run simulation:build` | Build the complete VS Code simulation |
+| `mise run firmware:docs` | Generate Doxygen documentation |
+| `mise run docs:serve` | Serve generated firmware documentation locally |
+| `mise run deploy:install` | Install or upgrade the service on the current Pi |
+| `mise run deploy:uninstall` | Remove the service while preserving its data |
+
+### Contributing
+
+Bug reports, documentation fixes, hardware validation, and focused feature
+contributions are welcome.
+
+1. Search the [existing issues](https://github.com/jakubpawlina/GPS-reference-module/issues)
+   before opening a new report.
+2. Fork the repository and create a focused branch from the current default
+   branch.
+3. Keep changes scoped and follow the existing firmware, Python, and shell
+   conventions.
+4. Add or update tests and documentation when behavior changes.
+5. Run the relevant checks before opening a pull request.
+
+Recommended verification:
+
+```bash
+# Firmware logic and ESP32 compilation
+mise run firmware:verify
+
+# Full Wokwi project, when firmware or simulation assets change
+mise run simulation:build
+
+# Firmware API documentation, when public headers change
+mise run firmware:docs
+```
+
+Pull requests should explain the problem, implementation, hardware or
+simulation assumptions, and verification commands. Include screenshots or
+serial/API samples for visible behavior changes.
+
+Use [GitHub Issues](https://github.com/jakubpawlina/GPS-reference-module/issues/new)
+for reproducible bugs and feature proposals. Do not publish credentials,
+private network details, or unredacted production data.
+
+> [!WARNING]
+> For a potential security vulnerability, avoid posting exploit details in a
+> public issue. Contact the repository owner privately through their GitHub
+> profile until a dedicated security policy is available.
+
+### Repository Layout
 
 Only the main entrypoints are shown; each directory also contains supporting
 modules and configuration files.
@@ -317,7 +366,7 @@ gps-reference-module/
 └── ...
 ```
 
-## Documentation
+### Documentation
 
 | Document | Contents |
 |---|---|
