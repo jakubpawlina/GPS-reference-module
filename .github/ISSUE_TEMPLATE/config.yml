@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Technical documentation
+    url: https://github.com/jakubpawlina/GPS-reference-module#documentation
+    about: Review the architecture, firmware, API, simulation, and deployment guides.
+  - name: Security concern
+    url: https://github.com/jakubpawlina
+    about: Contact the repository owner privately instead of opening a public vulnerability report.

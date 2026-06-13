@@ -1,0 +1,111 @@
+name: Bug report
+description: Report a reproducible firmware, simulation, service, API, or hardware problem.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. Search existing issues first and remove credentials, private addresses, and production data from all logs.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      description: Select the area where the problem occurs.
+      options:
+        - ESP32 firmware
+        - Wokwi simulation
+        - Raspberry Pi service
+        - REST/SSE API or dashboard
+        - SQLite storage
+        - Deployment scripts
+        - Physical hardware or wiring
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Problem summary
+      description: Describe what is wrong and its practical impact.
+      placeholder: The expected GPS state is not reported after...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Provide the smallest reliable sequence that reproduces the problem.
+      placeholder: |
+        1. Run ...
+        2. Select scenario ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should have happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened instead? Include exact error messages when available.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include only details relevant to the affected component.
+      placeholder: |
+        OS:
+        ESP32 board/core:
+        GPS receiver:
+        Raspberry Pi model and OS:
+        Python version:
+        Arduino CLI version:
+        Docker/Wokwi version:
+        Serial port:
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Logs and evidence
+      description: Add sanitized serial output, service logs, API responses, screenshots, or wiring photos.
+      render: text
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification performed
+      description: List relevant commands and their results.
+      placeholder: |
+        mise run firmware:verify
+        mise run simulation:build
+        journalctl -u gps-reference -n 100
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues for the same problem.
+          required: true
+        - label: I removed credentials, private network details, and sensitive production data.
+          required: true
+        - label: I included enough information to reproduce the problem.
+          required: true

@@ -1,0 +1,76 @@
+name: Feature request
+description: Propose a focused improvement to the firmware, service, simulation, API, or documentation.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the problem before proposing an implementation. Focused requests with clear acceptance criteria are easier to evaluate.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Target component
+      options:
+        - ESP32 firmware
+        - Wokwi simulation
+        - Raspberry Pi service
+        - REST/SSE API or dashboard
+        - SQLite storage
+        - Deployment and operations
+        - Physical hardware
+        - Documentation
+        - Cross-component
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What limitation or user need should be addressed?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the desired behavior without requiring a specific implementation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe existing workarounds or other approaches.
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List observable conditions that would make the feature complete.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Compatibility and impact
+      description: Note protocol, API, hardware, storage, deployment, or simulation implications.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues for a similar request.
+          required: true
+        - label: This request describes one focused problem or capability.
+          required: true

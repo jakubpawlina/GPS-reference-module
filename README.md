@@ -334,9 +334,12 @@ Pull requests should explain the problem, implementation, hardware or
 simulation assumptions, and verification commands. Include screenshots or
 serial/API samples for visible behavior changes.
 
-Use [GitHub Issues](https://github.com/jakubpawlina/GPS-reference-module/issues/new)
-for reproducible bugs and feature proposals. Do not publish credentials,
-private network details, or unredacted production data.
+Use the repository templates to
+[report a bug](https://github.com/jakubpawlina/GPS-reference-module/issues/new?template=bug_report.yml)
+or
+[request a feature](https://github.com/jakubpawlina/GPS-reference-module/issues/new?template=feature_request.yml).
+Do not publish credentials, private network details, or unredacted production
+data.
 
 > [!WARNING]
 > For a potential security vulnerability, avoid posting exploit details in a
