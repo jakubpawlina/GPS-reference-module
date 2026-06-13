@@ -237,15 +237,15 @@ _DASHBOARD = """<!DOCTYPE html>
 
 <div id="data">
   <table>
-    <tr><th>STATE</th>      <td id="f-state">—</td></tr>
-    <tr><th>FIX</th>        <td id="f-fix">—</td></tr>
-    <tr><th>SATELLITES</th> <td id="f-sats">—</td></tr>
-    <tr><th>LATITUDE</th>   <td id="f-lat">—</td></tr>
-    <tr><th>LONGITUDE</th>  <td id="f-lon">—</td></tr>
-    <tr><th>ALTITUDE</th>   <td id="f-alt">—</td></tr>
-    <tr><th>HDOP</th>       <td id="f-hdop">—</td></tr>
-    <tr><th>SPEED</th>      <td id="f-spd">—</td></tr>
-    <tr><th>UTC</th>        <td id="f-utc">—</td></tr>
+    <tr><th>STATE</th>      <td id="f-state">-</td></tr>
+    <tr><th>FIX</th>        <td id="f-fix">-</td></tr>
+    <tr><th>SATELLITES</th> <td id="f-sats">-</td></tr>
+    <tr><th>LATITUDE</th>   <td id="f-lat">-</td></tr>
+    <tr><th>LONGITUDE</th>  <td id="f-lon">-</td></tr>
+    <tr><th>ALTITUDE</th>   <td id="f-alt">-</td></tr>
+    <tr><th>HDOP</th>       <td id="f-hdop">-</td></tr>
+    <tr><th>SPEED</th>      <td id="f-spd">-</td></tr>
+    <tr><th>UTC</th>        <td id="f-utc">-</td></tr>
   </table>
 </div>
 
