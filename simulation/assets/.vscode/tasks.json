@@ -1,0 +1,15 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Wokwi: Build Simulation",
+      "type": "shell",
+      "command": "${workspaceFolder}/../../tools/build-wokwi-project.sh",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    }
+  ]
+}

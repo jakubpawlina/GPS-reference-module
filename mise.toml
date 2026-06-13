@@ -41,3 +41,7 @@ run = "./tools/deploy-rpi-service.sh --uninstall"
 [tasks."simulation:generate"]
 description = "Regenerate the local Wokwi project from the source firmware"
 run = "python3 tools/generate-wokwi-project.py"
+
+[tasks."simulation:build"]
+description = "Build the generated Wokwi VS Code simulation project"
+run = "./tools/build-wokwi-project.sh"

@@ -124,11 +124,14 @@ project from it when needed.
 - `simulation/assets/` holds the canonical Wokwi diagram, library list, and custom GPS chip.
 - `tools/generate-wokwi-project.py` rebuilds `simulation/wokwi/` from the real firmware.
 
-To refresh the local Wokwi project:
+To build the local Wokwi for VS Code project, including the ESP32 firmware and
+custom GPS chip:
 
 ```bash
-mise run simulation:generate
+mise run simulation:build
 ```
+
+Open `simulation/wokwi/` in VS Code and run **Wokwi: Start Simulator**.
 
 ## Firmware quality workflow
 

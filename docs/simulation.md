@@ -16,6 +16,9 @@ simulation/
 │   └── neo-m8n.chip.json  # custom GPS simulator UI controls
 └── wokwi/                 # Ignored generated Wokwi project, created on demand
     ├── sketch.ino         # Copied firmware entrypoint
+    ├── wokwi.toml         # Wokwi for VS Code configuration
+    ├── build/             # Compiled ESP32 firmware artifacts
+    ├── neo-m8n.chip.wasm  # Compiled custom GPS simulator
     └── src/               # Complete copied firmware implementation
 ```
 
@@ -40,16 +43,24 @@ The simulation follows the current firmware pin map:
 | Yellow warning LED | 5 |
 | Green OK LED | 25 |
 
-## Wokwi Arduino project
+## Wokwi for VS Code
 
-Generate the local project first:
+Install Docker and the
+[Wokwi for VS Code extension](https://marketplace.visualstudio.com/items?itemName=Wokwi.wokwi-vscode).
+The first simulation build downloads the official `wokwi/builder-clang-wasm`
+container image used to compile the custom GPS chip.
+
+Build the complete local simulation project:
 
 ```bash
-mise run simulation:generate
+mise run simulation:build
 ```
 
-Then open `simulation/wokwi/` as a Wokwi Arduino project. The
-simulated GPS receiver is a custom `chip-neo-m8n` component and provides a
+Open `simulation/wokwi/` as the VS Code workspace. Press `F1` and select
+**Wokwi: Start Simulator**. After firmware changes, run the default VS Code
+build task (`Ctrl+Shift+B`) before restarting the simulator.
+
+The simulated GPS receiver is a custom `chip-neo-m8n` component and provides a
 **Scenario** control:
 
 - `0` = Auto demo
@@ -73,5 +84,8 @@ The generated Wokwi project is a disposable copy that is excluded from Git.
 After changing any file under `firmware/gps_reference_module/`, regenerate:
 
 ```bash
-mise run simulation:generate
+mise run simulation:build
 ```
+
+Use `mise run simulation:generate` only when source files are needed without
+compiled firmware and custom-chip artifacts.

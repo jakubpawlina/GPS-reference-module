@@ -1,0 +1,8 @@
+[wokwi]
+version = 1
+firmware = "build/firmware.bin"
+elf = "build/firmware.elf"
+
+[[chip]]
+name = "neo-m8n"
+binary = "neo-m8n.chip.wasm"
