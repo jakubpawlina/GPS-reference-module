@@ -15,9 +15,15 @@ simulation/
 │   ├── neo-m8n.chip.c     # custom GPS simulator chip
 │   └── neo-m8n.chip.json  # custom GPS simulator UI controls
 └── wokwi/                 # Ignored generated Wokwi project, created on demand
+    ├── sketch.ino         # Copied firmware entrypoint
+    └── src/               # Complete copied firmware implementation
 ```
 
 The project generator lives in [`tools/generate-wokwi-project.py`](/home/jakub/wsei/GPS-reference-module/tools/generate-wokwi-project.py).
+It discovers the single top-level `.ino` entrypoint and recursively copies the
+firmware and asset directories while excluding files ignored by Git. Alternative
+projects can be supplied with `--firmware-dir`, `--assets-dir`, and
+`--output-dir`.
 
 ## Simulated wiring
 
@@ -63,8 +69,8 @@ physical ESP32 firmware with the normal commands documented in `docs/firmware.md
 
 ## Regenerating after firmware changes
 
-The generated Wokwi project is a disposable copy that is excluded from Git. After
-changing `firmware/gps_reference_module/gps_reference_module.ino`, regenerate:
+The generated Wokwi project is a disposable copy that is excluded from Git.
+After changing any file under `firmware/gps_reference_module/`, regenerate:
 
 ```bash
 mise run simulation:generate
