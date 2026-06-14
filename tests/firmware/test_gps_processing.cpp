@@ -37,38 +37,26 @@ bool nearlyEqual(double lhs, double rhs, double epsilon = 1e-6) {
  */
 void testChecksumValidation() {
   require(!GpsProcessing::verifyNmeaChecksum(nullptr, false), "null sentence should fail");
-  require(!GpsProcessing::verifyNmeaChecksum("GPGGA,123519", false), "sentence without $ should fail");
-  require(
-    GpsProcessing::verifyNmeaChecksum("$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47", true),
-    "valid checksum should pass"
-  );
-  require(
-    !GpsProcessing::verifyNmeaChecksum("$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*00", true),
-    "invalid checksum should fail"
-  );
-  require(
-    GpsProcessing::verifyNmeaChecksum("$GPRMC,120000.00,A,5001.000,N,01957.000,E,0.10,90.0,250526,,,A", false),
-    "checksum-less sentence should pass when checksum is optional"
-  );
-  require(
-    !GpsProcessing::verifyNmeaChecksum("$GPRMC,120000.00,A", true),
-    "checksum-less sentence should fail when checksum is required"
-  );
-  require(
-    !GpsProcessing::verifyNmeaChecksum("$GPGGA,123519*4", true),
-    "one-digit checksum should fail"
-  );
-  require(
-    !GpsProcessing::verifyNmeaChecksum("$GPGGA,123519*ZZ", true),
-    "non-hex checksum should fail"
-  );
-  require(
-    !GpsProcessing::verifyNmeaChecksum(
-      "$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*4700",
-      true
-    ),
-    "checksum with trailing data should fail"
-  );
+  require(!GpsProcessing::verifyNmeaChecksum("GPGGA,123519", false),
+          "sentence without $ should fail");
+  require(GpsProcessing::verifyNmeaChecksum(
+              "$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47", true),
+          "valid checksum should pass");
+  require(!GpsProcessing::verifyNmeaChecksum(
+              "$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*00", true),
+          "invalid checksum should fail");
+  require(GpsProcessing::verifyNmeaChecksum(
+              "$GPRMC,120000.00,A,5001.000,N,01957.000,E,0.10,90.0,250526,,,A", false),
+          "checksum-less sentence should pass when checksum is optional");
+  require(!GpsProcessing::verifyNmeaChecksum("$GPRMC,120000.00,A", true),
+          "checksum-less sentence should fail when checksum is required");
+  require(!GpsProcessing::verifyNmeaChecksum("$GPGGA,123519*4", true),
+          "one-digit checksum should fail");
+  require(!GpsProcessing::verifyNmeaChecksum("$GPGGA,123519*ZZ", true),
+          "non-hex checksum should fail");
+  require(!GpsProcessing::verifyNmeaChecksum(
+              "$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*4700", true),
+          "checksum with trailing data should fail");
 }
 
 /**
@@ -79,31 +67,25 @@ void testChecksumValidation() {
 void testSentenceTypeDetectionAndLabels() {
   using GpsProcessing::NmeaSentenceType;
 
-  require(
-    GpsProcessing::detectSentenceTypeFromRaw("$GNGGA,120000.00") == NmeaSentenceType::Gga,
-    "GN talker GGA should be detected"
-  );
-  require(
-    GpsProcessing::detectSentenceTypeFromRaw("$GLGSA,A,3") == NmeaSentenceType::Gsa,
-    "GL talker GSA should be detected"
-  );
-  require(
-    GpsProcessing::detectSentenceTypeFromRaw("$GPRMC,120000.00") == NmeaSentenceType::Rmc,
-    "GP talker RMC should be detected"
-  );
-  require(
-    GpsProcessing::detectSentenceTypeFromRaw("$GPTXT,01,01,02") == NmeaSentenceType::Unknown,
-    "unsupported sentence should be unknown"
-  );
-  require(
-    GpsProcessing::detectSentenceTypeFromRaw(nullptr) == NmeaSentenceType::Unknown,
-    "null sentence should be unknown"
-  );
+  require(GpsProcessing::detectSentenceTypeFromRaw("$GNGGA,120000.00") == NmeaSentenceType::Gga,
+          "GN talker GGA should be detected");
+  require(GpsProcessing::detectSentenceTypeFromRaw("$GLGSA,A,3") == NmeaSentenceType::Gsa,
+          "GL talker GSA should be detected");
+  require(GpsProcessing::detectSentenceTypeFromRaw("$GPRMC,120000.00") == NmeaSentenceType::Rmc,
+          "GP talker RMC should be detected");
+  require(GpsProcessing::detectSentenceTypeFromRaw("$GPTXT,01,01,02") == NmeaSentenceType::Unknown,
+          "unsupported sentence should be unknown");
+  require(GpsProcessing::detectSentenceTypeFromRaw(nullptr) == NmeaSentenceType::Unknown,
+          "null sentence should be unknown");
 
-  require(std::string(GpsProcessing::sentenceTypeToText(NmeaSentenceType::Gga)) == "GGA", "GGA label mismatch");
-  require(std::string(GpsProcessing::sentenceTypeToText(NmeaSentenceType::Gsa)) == "GSA", "GSA label mismatch");
-  require(std::string(GpsProcessing::sentenceTypeToText(NmeaSentenceType::Rmc)) == "RMC", "RMC label mismatch");
-  require(std::string(GpsProcessing::sentenceTypeToText(NmeaSentenceType::Unknown)) == "UNKNOWN", "unknown label mismatch");
+  require(std::string(GpsProcessing::sentenceTypeToText(NmeaSentenceType::Gga)) == "GGA",
+          "GGA label mismatch");
+  require(std::string(GpsProcessing::sentenceTypeToText(NmeaSentenceType::Gsa)) == "GSA",
+          "GSA label mismatch");
+  require(std::string(GpsProcessing::sentenceTypeToText(NmeaSentenceType::Rmc)) == "RMC",
+          "RMC label mismatch");
+  require(std::string(GpsProcessing::sentenceTypeToText(NmeaSentenceType::Unknown)) == "UNKNOWN",
+          "unknown label mismatch");
 }
 
 /**
@@ -114,11 +96,7 @@ void testSentenceTypeDetectionAndLabels() {
 void testGgaParsing() {
   GpsData gps;
   GpsProcessing::processNmeaSentence(
-    gps,
-    "$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,",
-    1000,
-    false
-  );
+      gps, "$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,", 1000, false);
 
   require(gps.nmeaValid, "GGA should mark NMEA valid");
   require(gps.hasFix, "GGA with fixQuality=1 should mark fix");
@@ -141,48 +119,26 @@ void testGgaParsing() {
 void testCoordinatesAndInvalidFixes() {
   GpsData gps;
   GpsProcessing::processNmeaSentence(
-    gps,
-    "$GNGGA,123519,3351.1200,S,15112.8400,W,1,09,0.7,25.5,M,30.0,M,,",
-    100,
-    false
-  );
+      gps, "$GNGGA,123519,3351.1200,S,15112.8400,W,1,09,0.7,25.5,M,30.0,M,,", 100, false);
 
   require(nearlyEqual(gps.latitude, -33.852, 1e-6), "southern latitude parse mismatch");
   require(nearlyEqual(gps.longitude, -151.214, 1e-6), "western longitude parse mismatch");
 
-  GpsProcessing::processNmeaSentence(
-    gps,
-    "$GNGGA,123520,,,,,0,03,99.9,0.0,M,34.0,M,,",
-    200,
-    false
-  );
+  GpsProcessing::processNmeaSentence(gps, "$GNGGA,123520,,,,,0,03,99.9,0.0,M,34.0,M,,", 200, false);
   require(!gps.hasFix, "GGA fix quality zero should clear fix");
   require(!gps.locationValid, "GGA without coordinates should clear location");
   require(gps.satellitesUsed == 3, "no-fix GGA should still report satellites");
 
-  GpsProcessing::processNmeaSentence(
-    gps,
-    "$GNRMC,123521.00,V,,,,,0.00,0.0,260426,,,N",
-    300,
-    false
-  );
+  GpsProcessing::processNmeaSentence(gps, "$GNRMC,123521.00,V,,,,,0.00,0.0,260426,,,N", 300, false);
   require(!gps.hasFix, "void RMC should clear fix");
   require(!gps.locationValid, "void RMC should clear location");
 
   GpsProcessing::processNmeaSentence(
-    gps,
-    "$GNGGA,123522,9160.000,N,18100.000,E,1,09,0.7,25.5,M,30.0,M,,",
-    400,
-    false
-  );
+      gps, "$GNGGA,123522,9160.000,N,18100.000,E,1,09,0.7,25.5,M,30.0,M,,", 400, false);
   require(!gps.locationValid, "out-of-range coordinates should be rejected");
 
   GpsProcessing::processNmeaSentence(
-    gps,
-    "$GNGGA,123523,3351.1200,E,15112.8400,N,1,09,0.7,25.5,M,30.0,M,,",
-    500,
-    false
-  );
+      gps, "$GNGGA,123523,3351.1200,E,15112.8400,N,1,09,0.7,25.5,M,30.0,M,,", 500, false);
   require(!gps.locationValid, "latitude and longitude hemispheres should not be interchangeable");
 }
 
@@ -195,11 +151,7 @@ void testRmcAndGsaParsing() {
   GpsData gps;
 
   GpsProcessing::processNmeaSentence(
-    gps,
-    "$GPRMC,120001.00,A,5001.000,N,01957.000,E,1.50,90.0,250526,,,A",
-    2000,
-    false
-  );
+      gps, "$GPRMC,120001.00,A,5001.000,N,01957.000,E,1.50,90.0,250526,,,A", 2000, false);
   require(gps.hasFix, "RMC active sentence should set fix");
   require(gps.locationValid, "RMC should set location valid");
   require(gps.speedValid, "RMC should set speed valid");
@@ -208,11 +160,7 @@ void testRmcAndGsaParsing() {
   require(nearlyEqual(gps.speedKmh, 1.50 * 1.852, 1e-3), "RMC speed km/h mismatch");
 
   GpsProcessing::processNmeaSentence(
-    gps,
-    "$GPGSA,A,2,04,05,09,12,24,25,29,31,02,14,18,22,1.8,1.0,1.2",
-    2100,
-    false
-  );
+      gps, "$GPGSA,A,2,04,05,09,12,24,25,29,31,02,14,18,22,1.8,1.0,1.2", 2100, false);
   require(gps.fixTypeValid, "GSA should set fix type valid");
   require(gps.fixType == 2, "GSA should parse 2D fix");
   require(gps.pdopValid && gps.vdopValid, "GSA should set DOP validity");
@@ -227,11 +175,7 @@ void testSentenceCountersAndRejection() {
   GpsData gps;
 
   GpsProcessing::processNmeaSentence(
-    gps,
-    "$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*00",
-    100,
-    true
-  );
+      gps, "$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*00", 100, true);
   require(gps.rawSentenceCount == 1, "rejected sentence should increment raw count");
   require(gps.checksumErrorCount == 1, "rejected sentence should increment checksum errors");
   require(gps.acceptedSentenceCount == 0, "rejected sentence should not increment accepted count");
@@ -253,26 +197,20 @@ void testSnapshotStates() {
   GpsData gps;
 
   GpsProcessing::processNmeaSentence(
-    gps,
-    "$GPGGA,123519,4807.038,N,01131.000,E,1,05,0.9,545.4,M,46.9,M,,",
-    1000,
-    false
-  );
+      gps, "$GPGGA,123519,4807.038,N,01131.000,E,1,05,0.9,545.4,M,46.9,M,,", 1000, false);
   GpsProcessing::processNmeaSentence(
-    gps,
-    "$GPGSA,A,2,04,05,09,12,24,25,29,31,02,14,18,22,1.8,1.0,1.2",
-    1100,
-    false
-  );
+      gps, "$GPGSA,A,2,04,05,09,12,24,25,29,31,02,14,18,22,1.8,1.0,1.2", 1100, false);
 
   GpsValiditySnapshot degraded2d = GpsProcessing::buildGpsSnapshot(gps, 1200, 1800, 6);
-  require(degraded2d.diagnosticState == DiagnosticState::Degraded2D, "2D fix should degrade to DEGRADDED_2D");
+  require(degraded2d.diagnosticState == DiagnosticState::Degraded2D,
+          "2D fix should degrade to DEGRADDED_2D");
   require(!degraded2d.usableAltitude, "2D fix should suppress altitude");
 
   gps.fixType = 3;
   gps.satellitesUsed = 5;
   GpsValiditySnapshot lowSat = GpsProcessing::buildGpsSnapshot(gps, 1300, 1800, 6);
-  require(lowSat.diagnosticState == DiagnosticState::DegradedLowSat, "3D fix with low satellites should be degraded");
+  require(lowSat.diagnosticState == DiagnosticState::DegradedLowSat,
+          "3D fix with low satellites should be degraded");
 
   gps.satellitesUsed = 7;
   GpsValiditySnapshot ok = GpsProcessing::buildGpsSnapshot(gps, 1400, 1800, 6);
@@ -327,34 +265,52 @@ void testSnapshotBoundariesAndRollover() {
  * Verifies: JSON and OLED text remain stable for downstream consumers and operators.
  */
 void testStateAndFixLabels() {
-  require(std::string(GpsProcessing::diagnosticStateToJson(DiagnosticState::NoData)) == "NO_GPS_DATA", "NoData JSON label mismatch");
-  require(std::string(GpsProcessing::diagnosticStateToJson(DiagnosticState::NoFix)) == "NO_FIX", "NoFix JSON label mismatch");
-  require(std::string(GpsProcessing::diagnosticStateToJson(DiagnosticState::Degraded2D)) == "DEGRADED_2D", "2D JSON label mismatch");
-  require(std::string(GpsProcessing::diagnosticStateToJson(DiagnosticState::DegradedLowSat)) == "DEGRADED_LOW_SAT", "low-sat JSON label mismatch");
-  require(std::string(GpsProcessing::diagnosticStateToJson(DiagnosticState::Ok)) == "REFERENCE_OK", "OK JSON label mismatch");
+  require(std::string(GpsProcessing::diagnosticStateToJson(DiagnosticState::NoData)) ==
+              "NO_GPS_DATA",
+          "NoData JSON label mismatch");
+  require(std::string(GpsProcessing::diagnosticStateToJson(DiagnosticState::NoFix)) == "NO_FIX",
+          "NoFix JSON label mismatch");
+  require(std::string(GpsProcessing::diagnosticStateToJson(DiagnosticState::Degraded2D)) ==
+              "DEGRADED_2D",
+          "2D JSON label mismatch");
+  require(std::string(GpsProcessing::diagnosticStateToJson(DiagnosticState::DegradedLowSat)) ==
+              "DEGRADED_LOW_SAT",
+          "low-sat JSON label mismatch");
+  require(std::string(GpsProcessing::diagnosticStateToJson(DiagnosticState::Ok)) == "REFERENCE_OK",
+          "OK JSON label mismatch");
 
   GpsData gps;
   GpsValiditySnapshot snapshot;
-  require(std::string(GpsProcessing::fixTypeToText(gps, snapshot)) == "NONE", "stale fix JSON label mismatch");
-  require(std::string(GpsProcessing::fixTypeToDisplay(gps, snapshot)) == "---", "stale fix display label mismatch");
+  require(std::string(GpsProcessing::fixTypeToText(gps, snapshot)) == "NONE",
+          "stale fix JSON label mismatch");
+  require(std::string(GpsProcessing::fixTypeToDisplay(gps, snapshot)) == "---",
+          "stale fix display label mismatch");
 
   snapshot.freshFixSource = true;
-  require(std::string(GpsProcessing::fixTypeToText(gps, snapshot)) == "NONE", "no-fix JSON label mismatch");
-  require(std::string(GpsProcessing::fixTypeToDisplay(gps, snapshot)) == "NO", "no-fix display label mismatch");
+  require(std::string(GpsProcessing::fixTypeToText(gps, snapshot)) == "NONE",
+          "no-fix JSON label mismatch");
+  require(std::string(GpsProcessing::fixTypeToDisplay(gps, snapshot)) == "NO",
+          "no-fix display label mismatch");
 
   gps.hasFix = true;
-  require(std::string(GpsProcessing::fixTypeToText(gps, snapshot)) == "UNKNOWN", "unknown fix JSON label mismatch");
-  require(std::string(GpsProcessing::fixTypeToDisplay(gps, snapshot)) == "YES", "unknown fix display label mismatch");
+  require(std::string(GpsProcessing::fixTypeToText(gps, snapshot)) == "UNKNOWN",
+          "unknown fix JSON label mismatch");
+  require(std::string(GpsProcessing::fixTypeToDisplay(gps, snapshot)) == "YES",
+          "unknown fix display label mismatch");
 
   snapshot.freshGsa = true;
   gps.fixTypeValid = true;
   gps.fixType = 2;
-  require(std::string(GpsProcessing::fixTypeToText(gps, snapshot)) == "2D", "2D fix JSON label mismatch");
-  require(std::string(GpsProcessing::fixTypeToDisplay(gps, snapshot)) == "2D", "2D fix display label mismatch");
+  require(std::string(GpsProcessing::fixTypeToText(gps, snapshot)) == "2D",
+          "2D fix JSON label mismatch");
+  require(std::string(GpsProcessing::fixTypeToDisplay(gps, snapshot)) == "2D",
+          "2D fix display label mismatch");
 
   gps.fixType = 3;
-  require(std::string(GpsProcessing::fixTypeToText(gps, snapshot)) == "3D", "3D fix JSON label mismatch");
-  require(std::string(GpsProcessing::fixTypeToDisplay(gps, snapshot)) == "3D", "3D fix display label mismatch");
+  require(std::string(GpsProcessing::fixTypeToText(gps, snapshot)) == "3D",
+          "3D fix JSON label mismatch");
+  require(std::string(GpsProcessing::fixTypeToDisplay(gps, snapshot)) == "3D",
+          "3D fix display label mismatch");
 }
 
 /**
@@ -366,10 +322,8 @@ void testNmeaStreamFramer() {
   NmeaStreamFramer::LineAccumulator framer;
   char sentence[144];
 
-  require(
-    framer.feed('x', sentence, sizeof(sentence)) == NmeaStreamFramer::FeedResult::None,
-    "noise before sentence should be ignored"
-  );
+  require(framer.feed('x', sentence, sizeof(sentence)) == NmeaStreamFramer::FeedResult::None,
+          "noise before sentence should be ignored");
 
   const char *input = "$GPRMC,120001.00,A,5001.000,N,01957.000,E,1.50,90.0,250526,,,A\r\n";
   NmeaStreamFramer::FeedResult result = NmeaStreamFramer::FeedResult::None;
@@ -379,7 +333,8 @@ void testNmeaStreamFramer() {
   }
 
   require(result == NmeaStreamFramer::FeedResult::Complete, "full sentence should complete");
-  require(std::string(sentence) == "$GPRMC,120001.00,A,5001.000,N,01957.000,E,1.50,90.0,250526,,,A", "framer output mismatch");
+  require(std::string(sentence) == "$GPRMC,120001.00,A,5001.000,N,01957.000,E,1.50,90.0,250526,,,A",
+          "framer output mismatch");
 
   framer.reset();
   bool sawOverflow = false;
@@ -412,7 +367,8 @@ void testNmeaStreamFramer() {
   for (const char *p = longForOutput; *p; ++p) {
     result = framer.feed(*p, shortSentence, sizeof(shortSentence));
   }
-  require(result == NmeaStreamFramer::FeedResult::Complete, "truncated output should still complete");
+  require(result == NmeaStreamFramer::FeedResult::Complete,
+          "truncated output should still complete");
   require(std::string(shortSentence) == "$GPGG", "completed output should be safely truncated");
 }
 
@@ -425,17 +381,9 @@ void testPresentationModelsAndLedPatterns() {
   GpsData gps;
 
   GpsProcessing::processNmeaSentence(
-    gps,
-    "$GPGGA,123519,5001.5991,N,01957.2161,E,1,07,0.8,263.1,M,40.0,M,,",
-    1000,
-    false
-  );
+      gps, "$GPGGA,123519,5001.5991,N,01957.2161,E,1,07,0.8,263.1,M,40.0,M,,", 1000, false);
   GpsProcessing::processNmeaSentence(
-    gps,
-    "$GPGSA,A,3,04,05,09,12,24,25,29,31,02,14,18,22,1.6,0.8,1.4",
-    1100,
-    false
-  );
+      gps, "$GPGSA,A,3,04,05,09,12,24,25,29,31,02,14,18,22,1.6,0.8,1.4", 1100, false);
 
   GpsValiditySnapshot snapshot = GpsProcessing::buildGpsSnapshot(gps, 1200, 1800, 6);
   StatusPresentation::DisplayModel model;
@@ -449,7 +397,8 @@ void testPresentationModelsAndLedPatterns() {
   require(std::string(model.age) == "<1s", "display age mismatch");
 
   const StatusPresentation::LedPattern pattern = StatusPresentation::buildLedPattern(snapshot);
-  require(!pattern.error && pattern.data && !pattern.warning && pattern.ok, "OK state LED pattern mismatch");
+  require(!pattern.error && pattern.data && !pattern.warning && pattern.ok,
+          "OK state LED pattern mismatch");
 
   struct PatternCase {
     DiagnosticState state;
@@ -461,18 +410,19 @@ void testPresentationModelsAndLedPatterns() {
   };
 
   const PatternCase cases[] = {
-    {DiagnosticState::NoData, false, true, false, false, false},
-    {DiagnosticState::NoFix, true, true, true, false, false},
-    {DiagnosticState::Degraded2D, true, false, true, true, false},
-    {DiagnosticState::DegradedLowSat, true, false, true, true, false},
-    {DiagnosticState::Ok, true, false, true, false, true},
+      {DiagnosticState::NoData, false, true, false, false, false},
+      {DiagnosticState::NoFix, true, true, true, false, false},
+      {DiagnosticState::Degraded2D, true, false, true, true, false},
+      {DiagnosticState::DegradedLowSat, true, false, true, true, false},
+      {DiagnosticState::Ok, true, false, true, false, true},
   };
 
   for (const PatternCase &item : cases) {
     GpsValiditySnapshot patternSnapshot;
     patternSnapshot.diagnosticState = item.state;
     patternSnapshot.freshNmea = item.freshNmea;
-    const StatusPresentation::LedPattern actual = StatusPresentation::buildLedPattern(patternSnapshot);
+    const StatusPresentation::LedPattern actual =
+        StatusPresentation::buildLedPattern(patternSnapshot);
     require(actual.error == item.error, "LED error output mismatch");
     require(actual.data == item.data, "LED data output mismatch");
     require(actual.warning == item.warning, "LED warning output mismatch");
@@ -496,63 +446,40 @@ void testPresentationModelsAndLedPatterns() {
   require(std::string(staleModel.age) == "STALE", "stale display age mismatch");
 }
 
-}  // namespace
+} // namespace
 
 int main() {
-  runTest(
-    "NMEA checksum validation",
-    "Accepts valid or optional checksums and rejects malformed input.",
-    testChecksumValidation
-  );
-  runTest(
-    "Sentence type detection and labels",
-    "Recognizes supported talkers and maps sentence types to stable labels.",
-    testSentenceTypeDetectionAndLabels
-  );
-  runTest(
-    "GGA parsing",
-    "Extracts fix quality, satellites, coordinates, altitude, geoid, and HDOP.",
-    testGgaParsing
-  );
-  runTest(
-    "Coordinates and invalid fixes",
-    "Handles southern/western coordinates and clears stale fix fields.",
-    testCoordinatesAndInvalidFixes
-  );
-  runTest(
-    "RMC and GSA parsing",
-    "Extracts motion, date, fix dimension, and dilution-of-precision data.",
-    testRmcAndGsaParsing
-  );
-  runTest(
-    "Sentence counters and rejection",
-    "Tracks raw, accepted, unsupported, and checksum-rejected sentences.",
-    testSentenceCountersAndRejection
-  );
-  runTest(
-    "Diagnostic state transitions",
-    "Classifies 2D, low-satellite, healthy, and stale GPS states.",
-    testSnapshotStates
-  );
-  runTest(
-    "Timeout boundaries and millis rollover",
-    "Preserves freshness at timeout boundaries and across uint32 rollover.",
-    testSnapshotBoundariesAndRollover
-  );
-  runTest(
-    "State and fix labels",
-    "Keeps JSON and OLED labels stable for every diagnostic and fix type.",
-    testStateAndFixLabels
-  );
-  runTest(
-    "NMEA stream framing and recovery",
-    "Frames UART lines, handles overflow, restarts, and truncates safely.",
-    testNmeaStreamFramer
-  );
-  runTest(
-    "Display models and LED patterns",
-    "Formats OLED fields and maps every diagnostic state to the correct LEDs.",
-    testPresentationModelsAndLedPatterns
-  );
+  runTest("NMEA checksum validation",
+          "Accepts valid or optional checksums and rejects malformed input.",
+          testChecksumValidation);
+  runTest("Sentence type detection and labels",
+          "Recognizes supported talkers and maps sentence types to stable labels.",
+          testSentenceTypeDetectionAndLabels);
+  runTest("GGA parsing",
+          "Extracts fix quality, satellites, coordinates, altitude, geoid, and HDOP.",
+          testGgaParsing);
+  runTest("Coordinates and invalid fixes",
+          "Handles southern/western coordinates and clears stale fix fields.",
+          testCoordinatesAndInvalidFixes);
+  runTest("RMC and GSA parsing",
+          "Extracts motion, date, fix dimension, and dilution-of-precision data.",
+          testRmcAndGsaParsing);
+  runTest("Sentence counters and rejection",
+          "Tracks raw, accepted, unsupported, and checksum-rejected sentences.",
+          testSentenceCountersAndRejection);
+  runTest("Diagnostic state transitions",
+          "Classifies 2D, low-satellite, healthy, and stale GPS states.", testSnapshotStates);
+  runTest("Timeout boundaries and millis rollover",
+          "Preserves freshness at timeout boundaries and across uint32 rollover.",
+          testSnapshotBoundariesAndRollover);
+  runTest("State and fix labels",
+          "Keeps JSON and OLED labels stable for every diagnostic and fix type.",
+          testStateAndFixLabels);
+  runTest("NMEA stream framing and recovery",
+          "Frames UART lines, handles overflow, restarts, and truncates safely.",
+          testNmeaStreamFramer);
+  runTest("Display models and LED patterns",
+          "Formats OLED fields and maps every diagnostic state to the correct LEDs.",
+          testPresentationModelsAndLedPatterns);
   return 0;
 }

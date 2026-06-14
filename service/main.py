@@ -10,11 +10,11 @@ Shutdown sequence on SIGTERM:
 
 import asyncio
 import logging
-
-import uvicorn
+import types
 
 import config
 import reader
+import uvicorn
 from api import app
 
 logging.basicConfig(
@@ -25,6 +25,8 @@ log = logging.getLogger("main")
 
 
 async def _main() -> None:
+    config.validate()
+
     cfg = uvicorn.Config(
         app,
         host=config.HTTP_HOST,
@@ -38,7 +40,7 @@ async def _main() -> None:
     # SIGTERM/SIGINT arrives, before uvicorn starts waiting for connections.
     _orig = server.handle_exit
 
-    def _handle_exit(sig: int, frame: object) -> None:
+    def _handle_exit(sig: int, frame: types.FrameType | None) -> None:
         reader.request_stop()
         _orig(sig, frame)
 

@@ -12,15 +12,11 @@
 namespace NmeaStreamFramer {
 
 /** @brief Outcome of feeding one byte into the line accumulator. */
-enum class FeedResult : uint8_t {
-  None,
-  Complete,
-  Overflow
-};
+enum class FeedResult : uint8_t { None, Complete, Overflow };
 
 /** @brief Stateful accumulator that extracts NMEA sentences from a byte stream. */
 class LineAccumulator {
- public:
+public:
   LineAccumulator();
 
   /** @brief Clear any buffered partial sentence state. */
@@ -28,9 +24,9 @@ class LineAccumulator {
   /** @brief Feed one byte of input into the accumulator. */
   FeedResult feed(char c, char *completedSentence, size_t completedSentenceSize);
 
- private:
+private:
   char buffer_[144];
   size_t position_;
 };
 
-}  // namespace NmeaStreamFramer
+} // namespace NmeaStreamFramer

@@ -12,6 +12,6 @@ started_ms="$(tasklog_now_ms)"
 finished_ms="$(tasklog_now_ms)"
 duration_ms="$((finished_ms - started_ms))"
 printf '\n%s=== PASS%s  Full verification: 30 tests, 19 steps (%s)\n' \
-  "$TASKLOG_BOLD$TASKLOG_GREEN" \
-  "$TASKLOG_RESET" \
-  "$(tasklog_duration "$duration_ms")"
+	"$TASKLOG_BOLD$TASKLOG_GREEN" \
+	"$TASKLOG_RESET" \
+	"$(tasklog_duration "$duration_ms")"

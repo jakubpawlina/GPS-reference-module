@@ -17,10 +17,7 @@ void reportStartupJson(bool displayReady, uint8_t oledAddress);
 /** @brief Emit a raw-NMEA observation event. */
 void reportRawNmeaJson(const char *sentence, bool checksumOk);
 /** @brief Emit the current parsed-state event. */
-void reportParsedStateJson(
-  const GpsProcessing::GpsData &gps,
-  const GpsProcessing::GpsValiditySnapshot &snapshot,
-  bool displayReady
-);
+void reportParsedStateJson(const GpsProcessing::GpsData &gps,
+                           const GpsProcessing::GpsValiditySnapshot &snapshot, bool displayReady);
 
-}  // namespace SerialJsonReporter
+} // namespace SerialJsonReporter

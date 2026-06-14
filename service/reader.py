@@ -22,22 +22,22 @@ import json
 import logging
 import threading
 
-import serial
-
 import config
 import database
+import serial
 
 log = logging.getLogger("reader")
 
 # Live state shared with API handlers (written only from _loop).
 current_state: dict = {}
-last_row_id:   int  = 0
+last_row_id: int = 0
 
-_stop: threading.Event        = threading.Event()
-_task: asyncio.Task | None    = None
+_stop: threading.Event = threading.Event()
+_task: asyncio.Task | None = None
 
 
 # ── Lifecycle ──────────────────────────────────────────────────────────────────
+
 
 async def start() -> None:
     global _task
@@ -71,12 +71,13 @@ async def stop() -> None:
 
 # ── Internal ───────────────────────────────────────────────────────────────────
 
+
 def _open_port() -> serial.Serial:
     return serial.Serial(
         config.SERIAL_PORT,
         config.BAUD_RATE,
-        timeout=1,       # readline() returns every 1 s even with no data
-        dsrdtr=False,    # no DTR toggle - prevents ESP32 reset on open/close
+        timeout=1,  # readline() returns every 1 s even with no data
+        dsrdtr=False,  # no DTR toggle - prevents ESP32 reset on open/close
         rtscts=False,
     )
 
@@ -96,7 +97,7 @@ async def _run() -> None:
             await _loop()
         except asyncio.CancelledError:
             raise
-        except Exception as exc:
+        except (OSError, serial.SerialException) as exc:
             if _stop.is_set():
                 break
             log.warning("Serial fault (%s), retry in 5 s …", exc)
@@ -112,8 +113,8 @@ async def _loop() -> None:
 
     global current_state, last_row_id
 
-    loop              = asyncio.get_running_loop()
-    deadline          = loop.time() + 10.0
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + 10.0
     received_any_data = False
 
     try:
@@ -123,7 +124,7 @@ async def _loop() -> None:
             if not raw:
                 if not received_any_data and loop.time() > deadline:
                     log.warning("No data within 10 s of connect - reopening port")
-                    raise IOError("stalled port")
+                    raise OSError("stalled port")
                 continue
 
             received_any_data = True
@@ -141,7 +142,7 @@ async def _loop() -> None:
 
             if msg_type == "parsed_state":
                 current_state = msg
-                last_row_id   = await database.insert(msg)
+                last_row_id = await database.insert(msg)
             elif msg_type == "startup":
                 log.info("ESP32 firmware %s", msg.get("version", "?"))
             elif msg_type == "error":

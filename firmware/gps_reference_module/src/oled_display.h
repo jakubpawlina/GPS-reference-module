@@ -22,4 +22,4 @@ bool initializeDisplay(Adafruit_SSD1306 &display, uint8_t &detectedAddress);
 /** @brief Render the current display model to the OLED. */
 void renderDisplay(Adafruit_SSD1306 &display, const StatusPresentation::DisplayModel &model);
 
-}  // namespace OledDisplay
+} // namespace OledDisplay

@@ -8,7 +8,6 @@ import shutil
 import subprocess
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_FIRMWARE_DIR = ROOT / "firmware" / "gps_reference_module"
 DEFAULT_ASSETS_DIR = ROOT / "simulation" / "assets"
@@ -104,11 +103,7 @@ def git_ignored_paths(paths: list[Path]) -> set[Path]:
     if ignored.returncode not in (0, 1):
         raise SystemExit(ignored.stderr.strip() or "Unable to evaluate Git ignore rules")
 
-    return {
-        repository_root / path
-        for path in ignored.stdout.rstrip("\0").split("\0")
-        if path
-    }
+    return {repository_root / path for path in ignored.stdout.rstrip("\0").split("\0") if path}
 
 
 def copy_directory(source: Path, target: Path, excluded: set[Path] | None = None) -> None:

@@ -41,16 +41,29 @@ in SQLite and exposes a browser dashboard, REST API, and SSE stream.
 
 ## Preview
 
+### Browser dashboard
+
+The Raspberry Pi service exposes a live dashboard at `http://<rpi-ip>:8000/`
+that updates in real time via Server-Sent Events.
+
+<p align="center">
+  <img src="docs/images/service/dashboard-reference-ok.png"
+       alt="Browser dashboard showing REFERENCE_OK state with coordinates, altitude, HDOP, and UTC time"
+       width="800">
+</p>
+
+### Wokwi simulation
+
 The Wokwi project runs the production ESP32 firmware with a simulated NEO-M8N
 receiver, SSD1306 OLED, and status LEDs.
 
-### Reference OK
+#### Reference OK
 
 <p align="center">
   <img src="docs/images/simulation/wokwi-state-ok.png" alt="Wokwi simulation showing the Reference OK state" width="900">
 </p>
 
-### GPS data, no fix
+#### GPS data, no fix
 
 <p align="center">
   <img src="docs/images/simulation/wokwi-state-no-fix.png" alt="Wokwi simulation showing GPS data with no position fix" width="900">
@@ -295,44 +308,61 @@ sudo systemctl restart gps-reference
 
 ### Development
 
-Start with:
+Run `mise run help` to see this flow at any time.
 
-```bash
-mise run help
+#### Recommended workflow
+
+```
+1. SETUP (once)
+   mise install
+   mise run firmware:bootstrap
+   mise run service:bootstrap
+
+2. DEVELOP
+   mise run service:dev          ← live service with fake GPS, no hardware needed
+
+3. TEST  (pick the layer that matches your change)
+   mise run test:unit            ← firmware logic (fastest, no peripherals)
+   mise run test:integration     ← firmware runtime with simulated peripherals
+   mise run test:simulation      ← Wokwi project assets and GPS chip
+   mise run test:service         ← service storage, API, and lifecycle
+
+4. FORMAT + LINT
+   mise run format               ← auto-format Python, C++, and shell
+   mise run lint                 ← static analysis
+
+5. COMMIT GATE
+   mise run test:all             ← every host-side test layer (no Docker)
+
+6. PR GATE
+   mise run verify               ← all tests + ESP32 and Wokwi builds (requires Docker)
 ```
 
-Recommended flow:
-
-| Stage | Command |
-|---|---|
-| First setup | `mise install && mise run firmware:bootstrap && mise run service:bootstrap` |
-| Fast feedback | `mise run test:unit` |
-| Runtime or hardware-facing changes | `mise run test:integration` |
-| Wokwi changes | `mise run test:simulation` |
-| Raspberry Pi service changes | `mise run test:service` |
-| Before committing | `mise run test:all` |
-| Before opening a pull request | `mise run verify` |
-| Interactive simulator | `mise run simulation:build`, then start Wokwi in VS Code |
-
-Task reference:
+#### Task reference
 
 | Command | Purpose |
 |---|---|
 | `mise run help` | Show the recommended development workflow |
+| `mise install` | Install Python, Arduino CLI, ruff, shfmt |
 | `mise run firmware:bootstrap` | Install the ESP32 core and Arduino libraries |
+| `mise run service:bootstrap` | Create the Python venv and install service dependencies |
+| `mise run service:dev` | Run the service locally with fake GPS data |
 | `mise run test:unit` | Test pure firmware logic |
-| `mise run test:integration` | Test the complete firmware runtime with simulated peripherals |
-| `mise run test:simulation` | Test Wokwi assets, generation, wiring, and GPS chip logic |
-| `mise run test:service` | Test service storage, API validation, and lifecycle behavior |
-| `mise run test:all` | Run every host-side test layer |
-| `mise run verify` | Run all tests and build the ESP32 and Wokwi projects |
-| `mise run firmware:compile` | Compile firmware for ESP32 |
-| `mise run simulation:generate` | Generate simulator sources without compiling |
+| `mise run test:integration` | Test firmware runtime with simulated peripherals |
+| `mise run test:simulation` | Test Wokwi project assets, generation, and GPS chip logic |
+| `mise run test:service` | Test service storage, API, and lifecycle behavior |
+| `mise run test:all` | Run every host-side test layer (no Docker required) |
+| `mise run format` | Auto-format Python, C++, and shell |
+| `mise run format:check` | Verify formatting without changes (CI gate) |
+| `mise run lint` | Python and shell static analysis |
+| `mise run verify` | All tests plus ESP32 and Wokwi builds (requires Docker) |
+| `mise run firmware:compile` | Compile firmware for the ESP32 |
+| `mise run simulation:generate` | Generate Wokwi simulator sources without compiling |
 | `mise run simulation:build` | Build the complete VS Code simulation |
-| `mise run docs:generate` | Generate Doxygen documentation |
-| `mise run docs:serve` | Serve generated firmware documentation locally |
-| `mise run deploy:install` | Install or upgrade the service on the current Pi |
-| `mise run deploy:uninstall` | Remove the service while preserving its data |
+| `mise run docs:generate` | Generate Doxygen firmware API documentation |
+| `mise run docs:serve` | Generate and serve firmware documentation locally |
+| `mise run deploy:install` | Install or upgrade the Raspberry Pi service |
+| `mise run deploy:uninstall` | Remove the Raspberry Pi service (data is preserved) |
 
 ### Contributing
 
@@ -348,18 +378,7 @@ contributions are welcome.
 4. Add or update tests and documentation when behavior changes.
 5. Run the relevant checks before opening a pull request.
 
-Recommended verification:
-
-```bash
-# Complete test and build gate
-mise run verify
-
-# Firmware API documentation, when public headers change
-mise run docs:generate
-```
-
-See [tests/README.md](tests/README.md) for test-layer boundaries, dependencies,
-and compatibility commands.
+Before opening a pull request, run `mise run verify` (all tests and builds) and `mise run docs:generate` if any public firmware headers changed. See [tests/README.md](tests/README.md) for test-layer boundaries and compatibility notes.
 
 Pull requests should explain the problem, implementation, hardware or
 simulation assumptions, and verification commands. Include screenshots or

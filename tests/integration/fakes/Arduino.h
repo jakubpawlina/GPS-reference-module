@@ -30,7 +30,7 @@ uint32_t now();
 PinState pinState(uint8_t pin);
 
 class SerialPort {
- public:
+public:
   void begin(uint32_t baud);
   void print(const char *value);
   void print(char value);
@@ -47,15 +47,15 @@ class SerialPort {
   const std::string &output() const;
   void clearOutput();
 
- private:
+private:
   uint32_t baud_ = 0;
   std::string output_;
 };
 
-}  // namespace FakeArduino
+} // namespace FakeArduino
 
 class HardwareSerial {
- public:
+public:
   explicit HardwareSerial(int id);
 
   void begin(uint32_t baud, uint32_t config, int8_t rxPin, int8_t txPin);
@@ -67,7 +67,7 @@ class HardwareSerial {
   int8_t rxPin() const;
   int8_t txPin() const;
 
- private:
+private:
   int id_;
   uint32_t baud_ = 0;
   int8_t rxPin_ = -1;

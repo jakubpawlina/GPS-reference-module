@@ -24,84 +24,84 @@ struct Scenario {
 };
 
 const Scenario scenarios[] = {
-  /*
-   * No receiver traffic after boot.
-   * Expects an error state, no data indication, and placeholder OLED fields.
-   */
-  {
-    "no-data",
-    "",
-    "NO_GPS_DATA",
-    "NO DATA",
-    true,
-    false,
-    false,
-    false,
-  },
-  /*
-   * Valid NMEA transport without a position fix.
-   * Expects both data and error indications while position fields remain unusable.
-   */
-  {
-    "no-fix",
-    "$GNGGA,010101.00,,,,,0,03,99.9,0.0,M,34.0,M,,\r\n"
-    "$GNRMC,010101.00,V,,,,,0.02,054.7,260426,,,A\r\n"
-    "$GNGSA,A,1,,,,,,,,,,,,,99.9,99.9,99.9\r\n",
-    "NO_FIX",
-    "NO FIX",
-    true,
-    true,
-    false,
-    false,
-  },
-  /*
-   * Valid position with a two-dimensional fix.
-   * Expects warning presentation because altitude cannot be trusted.
-   */
-  {
-    "fix-2d",
-    "$GNGGA,010101.00,5213.7820,N,02100.7320,E,1,04,1.7,120.0,M,34.0,M,,\r\n"
-    "$GNRMC,010101.00,A,5213.7820,N,02100.7320,E,0.02,054.7,260426,,,A\r\n"
-    "$GNGSA,A,2,10,11,12,13,,,,,,,,,2.8,1.7,9.9\r\n",
-    "DEGRADED_2D",
-    "WARN 2D",
-    false,
-    true,
-    true,
-    false,
-  },
-  /*
-   * Valid three-dimensional fix below the configured satellite threshold.
-   * Expects usable position data with a degraded low-satellite warning.
-   */
-  {
-    "low-sat",
-    "$GNGGA,010101.00,5213.7820,N,02100.7320,E,1,05,0.8,120.0,M,34.0,M,,\r\n"
-    "$GNRMC,010101.00,A,5213.7820,N,02100.7320,E,0.02,054.7,260426,,,A\r\n"
-    "$GNGSA,A,3,10,11,12,13,14,,,,,,,,1.6,0.8,1.4\r\n",
-    "DEGRADED_LOW_SAT",
-    "LOW SAT",
-    false,
-    true,
-    true,
-    false,
-  },
-  /*
-   * Healthy three-dimensional reference fix.
-   * Expects valid position/altitude data and the green OK indication.
-   */
-  {
-    "ok",
-    "$GNGGA,010101.00,5213.7820,N,02100.7320,E,1,09,0.8,120.0,M,34.0,M,,\r\n"
-    "$GNRMC,010101.00,A,5213.7820,N,02100.7320,E,0.02,054.7,260426,,,A\r\n"
-    "$GNGSA,A,3,10,11,12,13,14,15,16,17,18,,,,1.6,0.8,1.4\r\n",
-    "REFERENCE_OK",
-    "OK",
-    false,
-    true,
-    false,
-    true,
-  },
+    /*
+     * No receiver traffic after boot.
+     * Expects an error state, no data indication, and placeholder OLED fields.
+     */
+    {
+        "no-data",
+        "",
+        "NO_GPS_DATA",
+        "NO DATA",
+        true,
+        false,
+        false,
+        false,
+    },
+    /*
+     * Valid NMEA transport without a position fix.
+     * Expects both data and error indications while position fields remain unusable.
+     */
+    {
+        "no-fix",
+        "$GNGGA,010101.00,,,,,0,03,99.9,0.0,M,34.0,M,,\r\n"
+        "$GNRMC,010101.00,V,,,,,0.02,054.7,260426,,,A\r\n"
+        "$GNGSA,A,1,,,,,,,,,,,,,99.9,99.9,99.9\r\n",
+        "NO_FIX",
+        "NO FIX",
+        true,
+        true,
+        false,
+        false,
+    },
+    /*
+     * Valid position with a two-dimensional fix.
+     * Expects warning presentation because altitude cannot be trusted.
+     */
+    {
+        "fix-2d",
+        "$GNGGA,010101.00,5213.7820,N,02100.7320,E,1,04,1.7,120.0,M,34.0,M,,\r\n"
+        "$GNRMC,010101.00,A,5213.7820,N,02100.7320,E,0.02,054.7,260426,,,A\r\n"
+        "$GNGSA,A,2,10,11,12,13,,,,,,,,,2.8,1.7,9.9\r\n",
+        "DEGRADED_2D",
+        "WARN 2D",
+        false,
+        true,
+        true,
+        false,
+    },
+    /*
+     * Valid three-dimensional fix below the configured satellite threshold.
+     * Expects usable position data with a degraded low-satellite warning.
+     */
+    {
+        "low-sat",
+        "$GNGGA,010101.00,5213.7820,N,02100.7320,E,1,05,0.8,120.0,M,34.0,M,,\r\n"
+        "$GNRMC,010101.00,A,5213.7820,N,02100.7320,E,0.02,054.7,260426,,,A\r\n"
+        "$GNGSA,A,3,10,11,12,13,14,,,,,,,,1.6,0.8,1.4\r\n",
+        "DEGRADED_LOW_SAT",
+        "LOW SAT",
+        false,
+        true,
+        true,
+        false,
+    },
+    /*
+     * Healthy three-dimensional reference fix.
+     * Expects valid position/altitude data and the green OK indication.
+     */
+    {
+        "ok",
+        "$GNGGA,010101.00,5213.7820,N,02100.7320,E,1,09,0.8,120.0,M,34.0,M,,\r\n"
+        "$GNRMC,010101.00,A,5213.7820,N,02100.7320,E,0.02,054.7,260426,,,A\r\n"
+        "$GNGSA,A,3,10,11,12,13,14,15,16,17,18,,,,1.6,0.8,1.4\r\n",
+        "REFERENCE_OK",
+        "OK",
+        false,
+        true,
+        false,
+        true,
+    },
 };
 
 void require(bool condition, const std::string &message) {
@@ -113,7 +113,8 @@ void require(bool condition, const std::string &message) {
 
 const Scenario &findScenario(std::string_view name) {
   for (const Scenario &scenario : scenarios) {
-    if (name == scenario.name) return scenario;
+    if (name == scenario.name)
+      return scenario;
   }
   std::cerr << "Unknown scenario: " << name << '\n';
   std::exit(2);
@@ -130,7 +131,7 @@ void requireLed(uint8_t pin, bool expectedOn, const char *name) {
   }
 }
 
-}  // namespace
+} // namespace
 
 /**
  * Purpose: Exercise the real firmware setup/loop orchestration as one host process.
@@ -156,37 +157,36 @@ int main(int argc, char **argv) {
   require(gps->baud() == GpsConfig::BAUD_RATE, "GPS serial baud mismatch");
   require(gps->rxPin() == PinConfig::GPS_RX, "GPS RX pin mismatch");
   require(gps->txPin() == PinConfig::GPS_TX, "GPS TX pin mismatch");
-  require(Wire.sda() == PinConfig::OLED_SDA && Wire.scl() == PinConfig::OLED_SCL, "OLED I2C pins mismatch");
+  require(Wire.sda() == PinConfig::OLED_SDA && Wire.scl() == PinConfig::OLED_SCL,
+          "OLED I2C pins mismatch");
   require(Wire.clock() == 100000, "OLED I2C clock mismatch");
 
-  require(Serial.output().find("\"type\":\"startup\"") != std::string::npos, "startup JSON missing");
-  require(Serial.output().find("\"oledAddress\":60") != std::string::npos, "OLED address JSON should be decimal");
-  require(Serial.output().find("\"displayReady\":true") != std::string::npos, "display readiness missing");
+  require(Serial.output().find("\"type\":\"startup\"") != std::string::npos,
+          "startup JSON missing");
+  require(Serial.output().find("\"oledAddress\":60") != std::string::npos,
+          "OLED address JSON should be decimal");
+  require(Serial.output().find("\"displayReady\":true") != std::string::npos,
+          "display readiness missing");
 
   gps->inject(scenario.nmea);
   FakeArduino::setMillis(1000);
   loopFirmware();
 
   const std::string output = Serial.output();
-  require(
-    output.find(std::string("\"state\":\"") + scenario.jsonState + "\"") != std::string::npos,
-    std::string("parsed JSON state mismatch for ") + scenario.name
-  );
+  require(output.find(std::string("\"state\":\"") + scenario.jsonState + "\"") != std::string::npos,
+          std::string("parsed JSON state mismatch for ") + scenario.name);
 
   const size_t expectedRawCount = scenario.nmea[0] == '\0' ? 0 : 3;
-  require(
-    output.find(std::string("\"rawSentenceCount\":") + std::to_string(expectedRawCount)) != std::string::npos,
-    std::string("raw sentence count mismatch for ") + scenario.name
-  );
+  require(output.find(std::string("\"rawSentenceCount\":") + std::to_string(expectedRawCount)) !=
+              std::string::npos,
+          std::string("raw sentence count mismatch for ") + scenario.name);
 
   Adafruit_SSD1306 *display = FakeDisplay::instance();
   require(display != nullptr, "OLED instance missing");
   require(display->address() == DisplayConfig::I2C_ADDRESS, "OLED address mismatch");
   require(display->displayCount() >= 2, "OLED should render boot and runtime screens");
-  require(
-    display->row(0).find(scenario.displayState) != std::string::npos,
-    std::string("display state mismatch for ") + scenario.name + ": " + display->row(0)
-  );
+  require(display->row(0).find(scenario.displayState) != std::string::npos,
+          std::string("display state mismatch for ") + scenario.name + ": " + display->row(0));
 
   requireLed(PinConfig::LED_ERROR, scenario.errorLed, "error");
   requireLed(PinConfig::LED_DATA, scenario.dataLed, "data");

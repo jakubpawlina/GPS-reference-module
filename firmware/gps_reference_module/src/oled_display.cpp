@@ -33,18 +33,18 @@ void renderBootScreen(Adafruit_SSD1306 &display) {
   display.setTextColor(SSD1306_WHITE);
 
   drawDisplayRow(display, 0, "STATE", "START");
-  drawDisplayRow(display, 1, "FIX",   "---");
-  drawDisplayRow(display, 2, "SATS",  "---");
-  drawDisplayRow(display, 3, "LAT",   "---");
-  drawDisplayRow(display, 4, "LON",   "---");
-  drawDisplayRow(display, 5, "ALT",   "---");
-  drawDisplayRow(display, 6, "HDOP",  "---");
-  drawDisplayRow(display, 7, "AGE",   "---");
+  drawDisplayRow(display, 1, "FIX", "---");
+  drawDisplayRow(display, 2, "SATS", "---");
+  drawDisplayRow(display, 3, "LAT", "---");
+  drawDisplayRow(display, 4, "LON", "---");
+  drawDisplayRow(display, 5, "ALT", "---");
+  drawDisplayRow(display, 6, "HDOP", "---");
+  drawDisplayRow(display, 7, "AGE", "---");
 
   display.display();
 }
 
-}  // namespace
+} // namespace
 
 uint8_t probeOledAddress() {
   Wire.end();
@@ -56,10 +56,7 @@ uint8_t probeOledAddress() {
   Wire.setClock(100000);
   delay(10);
 
-  const uint8_t candidates[] = {
-    DisplayConfig::I2C_ADDRESS,
-    DisplayConfig::I2C_ADDRESS_ALT
-  };
+  const uint8_t candidates[] = {DisplayConfig::I2C_ADDRESS, DisplayConfig::I2C_ADDRESS_ALT};
 
   for (uint8_t i = 0; i < sizeof(candidates); i++) {
     Wire.beginTransmission(candidates[i]);
@@ -102,4 +99,4 @@ void renderDisplay(Adafruit_SSD1306 &display, const StatusPresentation::DisplayM
   display.display();
 }
 
-}  // namespace OledDisplay
+} // namespace OledDisplay

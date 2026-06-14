@@ -29,7 +29,6 @@ import os
 import time
 
 import aiosqlite
-
 import config
 
 log = logging.getLogger("database")
@@ -129,15 +128,21 @@ async def _cleanup_if_needed() -> None:
 
     async with aiosqlite.connect(config.DB_PATH) as db:
         async with db.execute("SELECT COUNT(*) FROM positions") as cur:
-            (total,) = await cur.fetchone()
+            row = await cur.fetchone()
+            (total,) = row if row else (0,)
 
         if total == 0:
             return
 
         to_delete = max(1, int(total * config.CLEANUP_FRAC))
+        log.warning(
+            "Storage at %.1f MiB (%.0f%% of cap) - removing %d oldest records",
+            size / 1024**2,
+            size / config.MAX_DB_BYTES * 100,
+            to_delete,
+        )
         await db.execute(
-            "DELETE FROM positions WHERE id IN "
-            "(SELECT id FROM positions ORDER BY id ASC LIMIT ?)",
+            "DELETE FROM positions WHERE id IN (SELECT id FROM positions ORDER BY id ASC LIMIT ?)",
             (to_delete,),
         )
         await db.commit()
@@ -156,12 +161,11 @@ async def _cleanup_if_needed() -> None:
 
 # ── Queries ────────────────────────────────────────────────────────────────────
 
+
 async def latest() -> dict | None:
     async with aiosqlite.connect(config.DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        async with db.execute(
-            "SELECT * FROM positions ORDER BY id DESC LIMIT 1"
-        ) as cur:
+        async with db.execute("SELECT * FROM positions ORDER BY id DESC LIMIT 1") as cur:
             row = await cur.fetchone()
             return dict(row) if row else None
 
@@ -191,17 +195,16 @@ async def stats() -> dict:
     size = _storage_size_bytes()
 
     async with aiosqlite.connect(config.DB_PATH) as db:
-        async with db.execute(
-            "SELECT COUNT(*), MIN(ts), MAX(ts) FROM positions"
-        ) as cur:
-            total, ts_min, ts_max = await cur.fetchone()
+        async with db.execute("SELECT COUNT(*), MIN(ts), MAX(ts) FROM positions") as cur:
+            agg = await cur.fetchone()
+            total, ts_min, ts_max = agg if agg else (0, None, None)
 
     return {
         "record_count": total or 0,
-        "oldest_ts":    ts_min,
-        "newest_ts":    ts_max,
+        "oldest_ts": ts_min,
+        "newest_ts": ts_max,
         "db_size_bytes": size,
-        "db_size_mb":    round(size / 1024**2, 1),
-        "max_size_mb":   round(config.MAX_DB_BYTES / 1024**2, 1),
-        "usage_pct":     round(size / config.MAX_DB_BYTES * 100, 2) if config.MAX_DB_BYTES else 0,
+        "db_size_mb": round(size / 1024**2, 1),
+        "max_size_mb": round(config.MAX_DB_BYTES / 1024**2, 1),
+        "usage_pct": round(size / config.MAX_DB_BYTES * 100, 2) if config.MAX_DB_BYTES else 0,
     }

@@ -10,4 +10,4 @@ void initializeLeds();
 /** @brief Apply one logical LED pattern to the physical pins. */
 void applyPattern(const StatusPresentation::LedPattern &pattern);
 
-}  // namespace StatusLedController
+} // namespace StatusLedController

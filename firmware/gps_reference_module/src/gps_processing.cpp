@@ -1,3 +1,44 @@
+/**
+ * @file gps_processing.cpp
+ * @brief NMEA 0183 sentence parser and GPS diagnostic-state evaluator.
+ *
+ * Supported sentence types
+ * ------------------------
+ * GGA (Global Positioning System Fix Data)
+ *   [0] Sentence ID   [1] UTC time   [2] Latitude   [3] N/S
+ *   [4] Longitude     [5] E/W        [6] Fix quality [7] Satellites used
+ *   [8] HDOP          [9] Altitude   [11] Geoid separation
+ *
+ * GSA (GNSS DOP and Active Satellites)
+ *   [0] Sentence ID   [2] Fix type (1=none, 2=2D, 3=3D)
+ *   [15] PDOP         [16] HDOP     [17] VDOP
+ *
+ * RMC (Recommended Minimum Specific GNSS Data)
+ *   [0] Sentence ID   [1] UTC time   [2] Status (A=active, V=void)
+ *   [3] Latitude      [4] N/S        [5] Longitude   [6] E/W
+ *   [7] Speed (knots) [8] Course     [9] Date (DDMMYY)
+ *
+ * Talker prefixes GP (GPS), GN (multi-constellation), GL (GLONASS), and
+ * GA (Galileo) are all accepted; detection is suffix-based so future talker
+ * prefixes are handled automatically.
+ *
+ * Coordinate format
+ * -----------------
+ * NMEA encodes coordinates as DDDMM.MMMM (degrees concatenated with decimal
+ * minutes).  parseCoordinate() separates the degree part with integer division
+ * by 100 and converts to decimal degrees: degrees + minutes / 60.
+ * Example: 4807.038 N → 48° + 7.038'/60 = 48.1173° N
+ *
+ * Freshness and uint32 rollover
+ * ------------------------------
+ * All timestamps use millis() (uint32_t, wraps every ~49.7 days).  The
+ * elapsed time is computed as (nowMs - timestampMs), which is correct even
+ * when nowMs has wrapped past zero and timestampMs has not, because unsigned
+ * subtraction in C++ wraps modulo 2^32 by definition.
+ *
+ * @see NMEA 0183 standard, version 4.11
+ */
+
 #include "gps_processing.h"
 
 #include <math.h>
@@ -19,9 +60,7 @@ static bool isRecent(uint32_t nowMs, uint32_t timestampMs, uint32_t gpsDataTimeo
 }
 
 static bool isHexDigit(char c) {
-  return (c >= '0' && c <= '9') ||
-         (c >= 'A' && c <= 'F') ||
-         (c >= 'a' && c <= 'f');
+  return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');
 }
 
 static bool endsWith(const char *text, const char *suffix) {
@@ -87,12 +126,8 @@ static int splitCsv(char *text, char *fields[], int maxFields) {
   return count;
 }
 
-static bool parseCoordinate(
-  const char *coordinate,
-  const char *hemisphere,
-  bool latitude,
-  double &result
-) {
+static bool parseCoordinate(const char *coordinate, const char *hemisphere, bool latitude,
+                            double &result) {
   if (!coordinate || !coordinate[0] || !hemisphere || !hemisphere[0]) {
     return false;
   }
@@ -101,9 +136,8 @@ static bool parseCoordinate(
     return false;
   }
 
-  const bool validHemisphere = latitude
-    ? hemisphere[0] == 'N' || hemisphere[0] == 'S'
-    : hemisphere[0] == 'E' || hemisphere[0] == 'W';
+  const bool validHemisphere = latitude ? hemisphere[0] == 'N' || hemisphere[0] == 'S'
+                                        : hemisphere[0] == 'E' || hemisphere[0] == 'W';
   if (!validHemisphere) {
     return false;
   }
@@ -171,14 +205,14 @@ static NmeaSentenceType getSentenceType(const char *sentenceId) {
 
 const char *sentenceTypeToText(NmeaSentenceType type) {
   switch (type) {
-    case NmeaSentenceType::Gga:
-      return "GGA";
-    case NmeaSentenceType::Gsa:
-      return "GSA";
-    case NmeaSentenceType::Rmc:
-      return "RMC";
-    case NmeaSentenceType::Unknown:
-      return "UNKNOWN";
+  case NmeaSentenceType::Gga:
+    return "GGA";
+  case NmeaSentenceType::Gsa:
+    return "GSA";
+  case NmeaSentenceType::Rmc:
+    return "RMC";
+  case NmeaSentenceType::Unknown:
+    return "UNKNOWN";
   }
 
   return "UNKNOWN";
@@ -192,7 +226,8 @@ NmeaSentenceType detectSentenceTypeFromRaw(const char *sentence) {
   char sentenceId[8];
   size_t index = 0;
 
-  for (const char *p = sentence + 1; *p && *p != ',' && *p != '*' && index < sizeof(sentenceId) - 1; p++) {
+  for (const char *p = sentence + 1; *p && *p != ',' && *p != '*' && index < sizeof(sentenceId) - 1;
+       p++) {
     sentenceId[index++] = *p;
   }
 
@@ -243,19 +278,11 @@ static void parseGga(GpsData &gps, char *fields[], int count, uint32_t nowMs) {
     gps.geoidValid = false;
   }
 
-  if (
-    gps.hasFix &&
-    count >= 6 &&
-    fields[2][0] &&
-    fields[3][0] &&
-    fields[4][0] &&
-    fields[5][0]
-  ) {
+  if (gps.hasFix && count >= 6 && fields[2][0] && fields[3][0] && fields[4][0] && fields[5][0]) {
     double latitude = 0.0;
     double longitude = 0.0;
-    gps.locationValid =
-      parseCoordinate(fields[2], fields[3], true, latitude) &&
-      parseCoordinate(fields[4], fields[5], false, longitude);
+    gps.locationValid = parseCoordinate(fields[2], fields[3], true, latitude) &&
+                        parseCoordinate(fields[4], fields[5], false, longitude);
     if (gps.locationValid) {
       gps.latitude = latitude;
       gps.longitude = longitude;
@@ -325,9 +352,8 @@ static void parseRmc(GpsData &gps, char *fields[], int count, uint32_t nowMs) {
     if (fields[3][0] && fields[4][0] && fields[5][0] && fields[6][0]) {
       double latitude = 0.0;
       double longitude = 0.0;
-      gps.locationValid =
-        parseCoordinate(fields[3], fields[4], true, latitude) &&
-        parseCoordinate(fields[5], fields[6], false, longitude);
+      gps.locationValid = parseCoordinate(fields[3], fields[4], true, latitude) &&
+                          parseCoordinate(fields[5], fields[6], false, longitude);
       if (gps.locationValid) {
         gps.latitude = latitude;
         gps.longitude = longitude;
@@ -399,21 +425,22 @@ void processNmeaSentence(GpsData &gps, const char *sentence, uint32_t nowMs, boo
   gps.acceptedSentenceCount++;
 
   switch (sentenceType) {
-    case NmeaSentenceType::Gga:
-      parseGga(gps, fields, fieldCount, nowMs);
-      break;
-    case NmeaSentenceType::Gsa:
-      parseGsa(gps, fields, fieldCount, nowMs);
-      break;
-    case NmeaSentenceType::Rmc:
-      parseRmc(gps, fields, fieldCount, nowMs);
-      break;
-    case NmeaSentenceType::Unknown:
-      break;
+  case NmeaSentenceType::Gga:
+    parseGga(gps, fields, fieldCount, nowMs);
+    break;
+  case NmeaSentenceType::Gsa:
+    parseGsa(gps, fields, fieldCount, nowMs);
+    break;
+  case NmeaSentenceType::Rmc:
+    parseRmc(gps, fields, fieldCount, nowMs);
+    break;
+  case NmeaSentenceType::Unknown:
+    break;
   }
 }
 
-static DiagnosticState calculateDiagnosticState(const GpsValiditySnapshot &snapshot, const GpsData &gps, uint8_t minOkSatellites) {
+static DiagnosticState calculateDiagnosticState(const GpsValiditySnapshot &snapshot,
+                                                const GpsData &gps, uint8_t minOkSatellites) {
   if (!snapshot.freshNmea) {
     return DiagnosticState::NoData;
   }
@@ -433,7 +460,8 @@ static DiagnosticState calculateDiagnosticState(const GpsValiditySnapshot &snaps
   return DiagnosticState::Ok;
 }
 
-GpsValiditySnapshot buildGpsSnapshot(const GpsData &gps, uint32_t nowMs, uint32_t gpsDataTimeoutMs, uint8_t minOkSatellites) {
+GpsValiditySnapshot buildGpsSnapshot(const GpsData &gps, uint32_t nowMs, uint32_t gpsDataTimeoutMs,
+                                     uint8_t minOkSatellites) {
   GpsValiditySnapshot snapshot;
   snapshot.nowMs = nowMs;
 
@@ -445,7 +473,8 @@ GpsValiditySnapshot buildGpsSnapshot(const GpsData &gps, uint32_t nowMs, uint32_
   snapshot.freshPositionSource = snapshot.freshGga || snapshot.freshRmc;
   snapshot.freshFixSource = snapshot.freshGga || snapshot.freshGsa || snapshot.freshRmc;
   snapshot.currentFix = snapshot.freshFixSource && gps.hasFix;
-  snapshot.usablePosition = snapshot.freshPositionSource && snapshot.currentFix && gps.locationValid;
+  snapshot.usablePosition =
+      snapshot.freshPositionSource && snapshot.currentFix && gps.locationValid;
 
   snapshot.usableAltitude = snapshot.freshGga && gps.altitudeValid && snapshot.usablePosition;
   if (snapshot.usableAltitude && snapshot.freshGsa && gps.fixTypeValid && gps.fixType == 2) {
@@ -465,11 +494,16 @@ GpsValiditySnapshot buildGpsSnapshot(const GpsData &gps, uint32_t nowMs, uint32_
 
 const char *diagnosticStateToJson(DiagnosticState state) {
   switch (state) {
-    case DiagnosticState::NoData: return "NO_GPS_DATA";
-    case DiagnosticState::NoFix: return "NO_FIX";
-    case DiagnosticState::Degraded2D: return "DEGRADED_2D";
-    case DiagnosticState::DegradedLowSat: return "DEGRADED_LOW_SAT";
-    case DiagnosticState::Ok: return "REFERENCE_OK";
+  case DiagnosticState::NoData:
+    return "NO_GPS_DATA";
+  case DiagnosticState::NoFix:
+    return "NO_FIX";
+  case DiagnosticState::Degraded2D:
+    return "DEGRADED_2D";
+  case DiagnosticState::DegradedLowSat:
+    return "DEGRADED_LOW_SAT";
+  case DiagnosticState::Ok:
+    return "REFERENCE_OK";
   }
 
   return "UNKNOWN";
@@ -477,11 +511,16 @@ const char *diagnosticStateToJson(DiagnosticState state) {
 
 const char *diagnosticStateToDisplay(DiagnosticState state) {
   switch (state) {
-    case DiagnosticState::NoData: return "NO DATA";
-    case DiagnosticState::NoFix: return "NO FIX";
-    case DiagnosticState::Degraded2D: return "WARN 2D";
-    case DiagnosticState::DegradedLowSat: return "LOW SAT";
-    case DiagnosticState::Ok: return "OK";
+  case DiagnosticState::NoData:
+    return "NO DATA";
+  case DiagnosticState::NoFix:
+    return "NO FIX";
+  case DiagnosticState::Degraded2D:
+    return "WARN 2D";
+  case DiagnosticState::DegradedLowSat:
+    return "LOW SAT";
+  case DiagnosticState::Ok:
+    return "OK";
   }
 
   return "---";
@@ -493,8 +532,10 @@ const char *fixTypeToText(const GpsData &gps, const GpsValiditySnapshot &snapsho
   }
 
   if (snapshot.freshGsa && gps.fixTypeValid) {
-    if (gps.fixType == 2) return "2D";
-    if (gps.fixType == 3) return "3D";
+    if (gps.fixType == 2)
+      return "2D";
+    if (gps.fixType == 3)
+      return "3D";
   }
 
   return "UNKNOWN";
@@ -510,11 +551,13 @@ const char *fixTypeToDisplay(const GpsData &gps, const GpsValiditySnapshot &snap
   }
 
   if (snapshot.freshGsa && gps.fixTypeValid) {
-    if (gps.fixType == 2) return "2D";
-    if (gps.fixType == 3) return "3D";
+    if (gps.fixType == 2)
+      return "2D";
+    if (gps.fixType == 3)
+      return "3D";
   }
 
   return "YES";
 }
 
-}  // namespace GpsProcessing
+} // namespace GpsProcessing

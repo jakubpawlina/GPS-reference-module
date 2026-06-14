@@ -20,20 +20,18 @@ import asyncio
 import json
 import time
 from contextlib import asynccontextmanager
-from typing import Optional
 from urllib.parse import urlparse
 
+import config
+import database
 import httpx
+import reader
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
-import config
-import database
-import reader
-
-
 # ── Lifespan ───────────────────────────────────────────────────────────────────
+
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
@@ -67,6 +65,7 @@ app.add_middleware(
 
 # ── Live state ─────────────────────────────────────────────────────────────────
 
+
 @app.get("/api/status", summary="Current GPS state", tags=["Live"])
 async def get_status():
     """
@@ -88,9 +87,10 @@ async def stream():
     """
     Pushes one JSON event per second when the GPS state changes.
 
-    **Browser:** `new EventSource('/api/stream')`  
+    **Browser:** `new EventSource('/api/stream')`
     **curl:** `curl -N http://<host>:8000/api/stream`
     """
+
     async def _generate():
         last = None
         while True:
@@ -105,6 +105,7 @@ async def stream():
 
 # ── Storage ────────────────────────────────────────────────────────────────────
 
+
 @app.get("/api/stats", summary="Storage statistics", tags=["Storage"])
 async def get_stats():
     """Record count, DB file size, oldest/newest timestamps, and usage percentage."""
@@ -113,10 +114,15 @@ async def get_stats():
 
 # ── Records ────────────────────────────────────────────────────────────────────
 
+
 @app.get("/api/records/since", summary="Incremental poll (cursor-based)", tags=["Records"])
 async def get_since(
-    cursor: int = Query(0, ge=0, description="Last record id received. Use 0 on first call; save `next_cursor` for subsequent calls."),
-    limit:  int = Query(1000, ge=1, le=10_000, description="Maximum records returned (max 10 000)."),
+    cursor: int = Query(
+        0,
+        ge=0,
+        description="Last record id received. Use 0 on first call; save `next_cursor` for subsequent calls.",
+    ),
+    limit: int = Query(1000, ge=1, le=10_000, description="Maximum records returned (max 10 000)."),
 ):
     """
     Stateless cursor-based polling. The server holds no session; the cursor is
@@ -137,9 +143,13 @@ async def get_since(
 
 @app.get("/api/records/range", summary="Time-range query", tags=["Records"])
 async def get_range(
-    ts_from: float           = Query(...,  description="Start of window, Unix timestamp (seconds)."),
-    ts_to:   Optional[float] = Query(None, description="End of window, Unix timestamp. Defaults to now."),
-    limit:   int             = Query(10_000, ge=1, le=50_000, description="Maximum records returned (max 50 000)."),
+    ts_from: float = Query(..., description="Start of window, Unix timestamp (seconds)."),
+    ts_to: float | None = Query(
+        None, description="End of window, Unix timestamp. Defaults to now."
+    ),
+    limit: int = Query(
+        10_000, ge=1, le=50_000, description="Maximum records returned (max 50 000)."
+    ),
 ):
     """
     Returns all records stored within `[ts_from, ts_to]`, oldest-first.
@@ -155,10 +165,11 @@ async def get_range(
 
 # ── Cloud upload ───────────────────────────────────────────────────────────────
 
+
 @app.post("/api/upload", summary="Upload records to a cloud webhook", tags=["Cloud"])
 async def upload(
     since_cursor: int = Query(0, ge=0, description="Upload only records with id > this value."),
-    limit:        int = Query(10_000, ge=1, le=50_000, description="Max records per batch (max 50 000)."),
+    limit: int = Query(10_000, ge=1, le=50_000, description="Max records per batch (max 50 000)."),
 ):
     """
     POSTs `{"source": "gps-reference", "records": [...]}` to the webhook.
@@ -177,7 +188,10 @@ async def upload(
     if not rows:
         return {"uploaded": 0, "next_cursor": since_cursor}
 
-    async with httpx.AsyncClient(timeout=30) as client:
+    # Use separate connect/read timeouts so a slow webhook body read does not
+    # stall the event loop longer than the combined 35-second ceiling.
+    timeout = httpx.Timeout(connect=5.0, read=30.0, write=10.0, pool=5.0)
+    async with httpx.AsyncClient(timeout=timeout) as client:
         try:
             resp = await client.post(url, json={"source": "gps-reference", "records": rows})
             resp.raise_for_status()
@@ -189,22 +203,73 @@ async def upload(
 
 # ── Meta ───────────────────────────────────────────────────────────────────────
 
+
 @app.get("/api/endpoints", summary="Machine-readable endpoint catalogue", tags=["Meta"])
 async def endpoints(request: Request):
     """Structured list of all endpoints with descriptions and example URLs."""
     base = str(request.base_url).rstrip("/")
-    return JSONResponse({"base_url": base, "endpoints": [
-        {"method": "GET",  "path": "/api/status",          "summary": "Current GPS state",                   "example": f"{base}/api/status"},
-        {"method": "GET",  "path": "/api/stats",            "summary": "Storage statistics",                  "example": f"{base}/api/stats"},
-        {"method": "GET",  "path": "/api/records/since",    "summary": "Incremental poll",                    "example": f"{base}/api/records/since?cursor=0"},
-        {"method": "GET",  "path": "/api/records/range",    "summary": "Time-range query",                    "example": f"{base}/api/records/range?ts_from=1748000000"},
-        {"method": "GET",  "path": "/api/stream",           "summary": "SSE live stream",                     "example": f"{base}/api/stream"},
-        {"method": "POST", "path": "/api/upload",           "summary": "Upload to configured cloud webhook",  "example": f"{base}/api/upload"},
-        {"method": "GET",  "path": "/api/endpoints",        "summary": "This endpoint catalogue",             "example": f"{base}/api/endpoints"},
-        {"method": "GET",  "path": "/",                     "summary": "Live browser dashboard",              "example": f"{base}/"},
-        {"method": "GET",  "path": "/docs",                 "summary": "Swagger UI",                          "example": f"{base}/docs"},
-        {"method": "GET",  "path": "/redoc",                "summary": "ReDoc",                               "example": f"{base}/redoc"},
-    ]})
+    return JSONResponse(
+        {
+            "base_url": base,
+            "endpoints": [
+                {
+                    "method": "GET",
+                    "path": "/api/status",
+                    "summary": "Current GPS state",
+                    "example": f"{base}/api/status",
+                },
+                {
+                    "method": "GET",
+                    "path": "/api/stats",
+                    "summary": "Storage statistics",
+                    "example": f"{base}/api/stats",
+                },
+                {
+                    "method": "GET",
+                    "path": "/api/records/since",
+                    "summary": "Incremental poll",
+                    "example": f"{base}/api/records/since?cursor=0",
+                },
+                {
+                    "method": "GET",
+                    "path": "/api/records/range",
+                    "summary": "Time-range query",
+                    "example": f"{base}/api/records/range?ts_from=1748000000",
+                },
+                {
+                    "method": "GET",
+                    "path": "/api/stream",
+                    "summary": "SSE live stream",
+                    "example": f"{base}/api/stream",
+                },
+                {
+                    "method": "POST",
+                    "path": "/api/upload",
+                    "summary": "Upload to configured cloud webhook",
+                    "example": f"{base}/api/upload",
+                },
+                {
+                    "method": "GET",
+                    "path": "/api/endpoints",
+                    "summary": "This endpoint catalogue",
+                    "example": f"{base}/api/endpoints",
+                },
+                {
+                    "method": "GET",
+                    "path": "/",
+                    "summary": "Live browser dashboard",
+                    "example": f"{base}/",
+                },
+                {
+                    "method": "GET",
+                    "path": "/docs",
+                    "summary": "Swagger UI",
+                    "example": f"{base}/docs",
+                },
+                {"method": "GET", "path": "/redoc", "summary": "ReDoc", "example": f"{base}/redoc"},
+            ],
+        }
+    )
 
 
 # ── Dashboard ──────────────────────────────────────────────────────────────────

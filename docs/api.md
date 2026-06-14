@@ -224,6 +224,12 @@ Live browser dashboard. Shows current GPS state updated in real time via SSE,
 plus a legend of all possible states. No navigation links - use direct URLs
 to reach `/docs` and `/redoc`.
 
+<p align="center">
+  <img src="../docs/images/service/dashboard-reference-ok.png"
+       alt="Browser dashboard showing REFERENCE_OK state with coordinates, altitude, HDOP, and UTC time"
+       width="800">
+</p>
+
 ---
 
 ## Position record fields

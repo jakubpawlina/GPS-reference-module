@@ -16,23 +16,37 @@ void printJsonEscapedString(const char *value) {
       const unsigned char c = static_cast<unsigned char>(*p);
 
       switch (c) {
-        case '\"': Serial.print(F("\\\"")); break;
-        case '\\': Serial.print(F("\\\\")); break;
-        case '\b': Serial.print(F("\\b")); break;
-        case '\f': Serial.print(F("\\f")); break;
-        case '\n': Serial.print(F("\\n")); break;
-        case '\r': Serial.print(F("\\r")); break;
-        case '\t': Serial.print(F("\\t")); break;
+      case '\"':
+        Serial.print(F("\\\""));
+        break;
+      case '\\':
+        Serial.print(F("\\\\"));
+        break;
+      case '\b':
+        Serial.print(F("\\b"));
+        break;
+      case '\f':
+        Serial.print(F("\\f"));
+        break;
+      case '\n':
+        Serial.print(F("\\n"));
+        break;
+      case '\r':
+        Serial.print(F("\\r"));
+        break;
+      case '\t':
+        Serial.print(F("\\t"));
+        break;
 
-        default:
-          if (c < 0x20) {
-            char escaped[7];
-            snprintf(escaped, sizeof(escaped), "\\u%04X", c);
-            Serial.print(escaped);
-          } else {
-            Serial.write(c);
-          }
-          break;
+      default:
+        if (c < 0x20) {
+          char escaped[7];
+          snprintf(escaped, sizeof(escaped), "\\u%04X", c);
+          Serial.print(escaped);
+        } else {
+          Serial.write(c);
+        }
+        break;
       }
     }
   }
@@ -64,7 +78,7 @@ void printJsonAgeOrNull(bool valid, uint32_t ageMs) {
   }
 }
 
-}  // namespace
+} // namespace
 
 void reportStartupJson(bool displayReady, uint8_t oledAddress) {
   if (!OutputConfig::EMIT_STARTUP_JSON) {
@@ -112,8 +126,7 @@ void reportRawNmeaJson(const char *sentence, bool checksumOk) {
 
   Serial.print(F(",\"sentenceType\":"));
   printJsonEscapedString(
-    GpsProcessing::sentenceTypeToText(GpsProcessing::detectSentenceTypeFromRaw(sentence))
-  );
+      GpsProcessing::sentenceTypeToText(GpsProcessing::detectSentenceTypeFromRaw(sentence)));
 
   Serial.print(F(",\"sentence\":"));
   printJsonEscapedString(sentence);
@@ -121,11 +134,8 @@ void reportRawNmeaJson(const char *sentence, bool checksumOk) {
   Serial.println(F("}"));
 }
 
-void reportParsedStateJson(
-  const GpsProcessing::GpsData &gps,
-  const GpsProcessing::GpsValiditySnapshot &snapshot,
-  bool displayReady
-) {
+void reportParsedStateJson(const GpsProcessing::GpsData &gps,
+                           const GpsProcessing::GpsValiditySnapshot &snapshot, bool displayReady) {
   if (!OutputConfig::EMIT_PARSED_STATE_JSON) {
     return;
   }
@@ -222,4 +232,4 @@ void reportParsedStateJson(
   Serial.println(F("}"));
 }
 
-}  // namespace SerialJsonReporter
+} // namespace SerialJsonReporter

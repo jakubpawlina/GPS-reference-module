@@ -15,12 +15,9 @@ LedPattern buildLedPattern(const GpsProcessing::GpsValiditySnapshot &snapshot) {
   return pattern;
 }
 
-static void formatDisplayAge(
-  const GpsProcessing::GpsData &gps,
-  const GpsProcessing::GpsValiditySnapshot &snapshot,
-  char *buffer,
-  size_t bufferSize
-) {
+static void formatDisplayAge(const GpsProcessing::GpsData &gps,
+                             const GpsProcessing::GpsValiditySnapshot &snapshot, char *buffer,
+                             size_t bufferSize) {
   if (!buffer || bufferSize == 0) {
     return;
   }
@@ -44,12 +41,10 @@ static void formatDisplayAge(
   snprintf(buffer, bufferSize, "%lus", static_cast<unsigned long>(ageSeconds));
 }
 
-void buildDisplayModel(
-  const GpsProcessing::GpsData &gps,
-  const GpsProcessing::GpsValiditySnapshot &snapshot,
-  DisplayModel &model
-) {
-  snprintf(model.state, sizeof(model.state), "%s", GpsProcessing::diagnosticStateToDisplay(snapshot.diagnosticState));
+void buildDisplayModel(const GpsProcessing::GpsData &gps,
+                       const GpsProcessing::GpsValiditySnapshot &snapshot, DisplayModel &model) {
+  snprintf(model.state, sizeof(model.state), "%s",
+           GpsProcessing::diagnosticStateToDisplay(snapshot.diagnosticState));
   snprintf(model.fix, sizeof(model.fix), "%s", GpsProcessing::fixTypeToDisplay(gps, snapshot));
 
   if (gps.lastGgaMs != 0) {
@@ -81,4 +76,4 @@ void buildDisplayModel(
   formatDisplayAge(gps, snapshot, model.age, sizeof(model.age));
 }
 
-}  // namespace StatusPresentation
+} // namespace StatusPresentation

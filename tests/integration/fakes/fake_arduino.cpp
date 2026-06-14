@@ -15,7 +15,7 @@ std::map<uint8_t, FakeArduino::PinState> pins;
 std::map<int, HardwareSerial *> hardwareSerials;
 Adafruit_SSD1306 *displayInstance;
 
-}  // namespace
+} // namespace
 
 FakeArduino::SerialPort Serial;
 TwoWire Wire;
@@ -46,7 +46,8 @@ void SerialPort::begin(uint32_t baud) {
 }
 
 void SerialPort::print(const char *value) {
-  if (value) output_ += value;
+  if (value)
+    output_ += value;
 }
 
 void SerialPort::print(char value) {
@@ -112,7 +113,7 @@ HardwareSerial *hardwareSerial(int id) {
   return found == hardwareSerials.end() ? nullptr : found->second;
 }
 
-}  // namespace FakeArduino
+} // namespace FakeArduino
 
 HardwareSerial::HardwareSerial(int id) : id_(id) {
   hardwareSerials[id] = this;
@@ -129,7 +130,8 @@ int HardwareSerial::available() const {
 }
 
 int HardwareSerial::read() {
-  if (readPosition_ >= input_.size()) return -1;
+  if (readPosition_ >= input_.size())
+    return -1;
   return static_cast<unsigned char>(input_[readPosition_++]);
 }
 
@@ -222,7 +224,8 @@ bool Adafruit_SSD1306::begin(uint8_t, uint8_t address, bool, bool) {
 }
 
 void Adafruit_SSD1306::clearDisplay() {
-  for (std::string &row : rows_) row.clear();
+  for (std::string &row : rows_)
+    row.clear();
 }
 
 void Adafruit_SSD1306::setTextSize(uint8_t) {}
@@ -236,11 +239,13 @@ void Adafruit_SSD1306::setCursor(int16_t x, int16_t y) {
 
 void Adafruit_SSD1306::print(const char *value) {
   const size_t rowIndex = static_cast<size_t>(cursorY_ / 8);
-  if (rowIndex >= rows_.size() || !value) return;
+  if (rowIndex >= rows_.size() || !value)
+    return;
 
   std::string &row = rows_[rowIndex];
   const size_t characterPosition = static_cast<size_t>(cursorX_ / 6);
-  if (row.size() < characterPosition) row.resize(characterPosition, ' ');
+  if (row.size() < characterPosition)
+    row.resize(characterPosition, ' ');
   if (row.size() < characterPosition + strlen(value)) {
     row.resize(characterPosition + strlen(value), ' ');
   }
@@ -270,4 +275,4 @@ Adafruit_SSD1306 *instance() {
   return displayInstance;
 }
 
-}  // namespace FakeDisplay
+} // namespace FakeDisplay

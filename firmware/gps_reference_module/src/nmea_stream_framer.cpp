@@ -48,4 +48,4 @@ FeedResult LineAccumulator::feed(char c, char *completedSentence, size_t complet
   return FeedResult::Overflow;
 }
 
-}  // namespace NmeaStreamFramer
+} // namespace NmeaStreamFramer

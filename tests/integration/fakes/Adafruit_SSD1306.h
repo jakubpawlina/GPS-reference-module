@@ -11,7 +11,7 @@ constexpr uint8_t SSD1306_WHITE = 1;
 constexpr uint8_t SSD1306_SWITCHCAPVCC = 2;
 
 class Adafruit_SSD1306 {
- public:
+public:
   Adafruit_SSD1306(uint8_t width, uint8_t height, TwoWire *wire, int8_t resetPin);
 
   bool begin(uint8_t powerMode, uint8_t address, bool reset, bool periphBegin);
@@ -26,7 +26,7 @@ class Adafruit_SSD1306 {
   uint8_t address() const;
   unsigned int displayCount() const;
 
- private:
+private:
   uint8_t address_ = 0;
   int16_t cursorX_ = 0;
   int16_t cursorY_ = 0;

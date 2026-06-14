@@ -1,6 +1,8 @@
 [tools]
 python = "3.13"
 "aqua:arduino/arduino-cli" = "1.4.1"
+"aqua:astral-sh/ruff" = "latest"
+"aqua:mvdan/sh" = "latest"
 
 # Doxygen is not available through mise's aqua registry as aqua:doxygen/doxygen.
 # Install it separately with:
@@ -21,6 +23,10 @@ run = "./tools/run-firmware-checks.sh compile"
 [tasks."service:bootstrap"]
 description = "First setup: create the service test environment and install Python dependencies"
 run = "./tools/setup-service-environment.sh"
+
+[tasks."service:dev"]
+description = "Develop: run the service locally with fake GPS data (no hardware needed)"
+run = ".venv/bin/python tools/run-service-dev.py"
 
 [tasks."docs:generate"]
 description = "Docs: generate firmware API documentation"
@@ -69,3 +75,15 @@ run = "./tools/run-tests.sh all"
 [tasks.verify]
 description = "Before PR: run all tests and builds (requires Docker)"
 run = "./tools/run-verification.sh"
+
+[tasks.format]
+description = "Format: auto-format Python (ruff), C++ (clang-format), and shell (shfmt)"
+run = "./tools/run-format.sh"
+
+[tasks."format:check"]
+description = "Format: verify formatting without making changes (CI gate)"
+run = "./tools/run-format.sh --check"
+
+[tasks.lint]
+description = "Lint: static analysis for Python (ruff check) and shell (shfmt)"
+run = "./tools/run-lint.sh"

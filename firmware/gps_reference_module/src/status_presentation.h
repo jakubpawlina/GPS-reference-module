@@ -33,10 +33,7 @@ struct DisplayModel {
 /** @brief Derive the current LED pattern from a validity snapshot. */
 LedPattern buildLedPattern(const GpsProcessing::GpsValiditySnapshot &snapshot);
 /** @brief Derive all formatted OLED rows from raw GPS state. */
-void buildDisplayModel(
-  const GpsProcessing::GpsData &gps,
-  const GpsProcessing::GpsValiditySnapshot &snapshot,
-  DisplayModel &model
-);
+void buildDisplayModel(const GpsProcessing::GpsData &gps,
+                       const GpsProcessing::GpsValiditySnapshot &snapshot, DisplayModel &model);
 
-}  // namespace StatusPresentation
+} // namespace StatusPresentation

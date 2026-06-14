@@ -20,7 +20,7 @@ void setLedState(uint8_t pin, bool on) {
   }
 }
 
-}  // namespace
+} // namespace
 
 void initializeLeds() {
   applyPattern({});
@@ -33,4 +33,4 @@ void applyPattern(const StatusPresentation::LedPattern &pattern) {
   setLedState(PinConfig::LED_OK, pattern.ok);
 }
 
-}  // namespace StatusLedController
+} // namespace StatusLedController

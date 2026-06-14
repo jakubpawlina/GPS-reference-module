@@ -6,9 +6,9 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import tomllib
 from pathlib import Path
 
+import tomllib
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_ASSETS_DIR = ROOT / "simulation" / "assets"
@@ -68,7 +68,10 @@ def validate_diagram(assets_dir: Path, firmware_dir: Path) -> None:
     require(isinstance(connections, list) and connections, "diagram must contain connections")
 
     part_ids = [part.get("id") for part in parts if isinstance(part, dict)]
-    require(all(isinstance(part_id, str) and part_id for part_id in part_ids), "every part must have an id")
+    require(
+        all(isinstance(part_id, str) and part_id for part_id in part_ids),
+        "every part must have an id",
+    )
     require(len(part_ids) == len(set(part_ids)), "diagram part ids must be unique")
 
     part_types = {
@@ -98,7 +101,10 @@ def validate_diagram(assets_dir: Path, firmware_dir: Path) -> None:
         ("rOk:1", f"esp:{pins['LED_OK']}"),
     )
     for left, right in required_connections:
-        require(frozenset((left, right)) in connection_pairs, f"missing diagram connection {left} <-> {right}")
+        require(
+            frozenset((left, right)) in connection_pairs,
+            f"missing diagram connection {left} <-> {right}",
+        )
 
 
 def validate_assets(assets_dir: Path, firmware_dir: Path) -> None:
@@ -120,13 +126,21 @@ def validate_assets(assets_dir: Path, firmware_dir: Path) -> None:
 
     chip = load_json(assets_dir / "neo-m8n.chip.json")
     require(isinstance(chip, dict), "chip definition must contain an object")
-    require(chip.get("pins") == ["VCC", "GND", "TX", "RX"], "GPS chip pins do not match the diagram")
+    require(
+        chip.get("pins") == ["VCC", "GND", "TX", "RX"], "GPS chip pins do not match the diagram"
+    )
     controls = chip.get("controls")
-    require(isinstance(controls, list) and len(controls) == 1, "GPS chip must expose one scenario control")
+    require(
+        isinstance(controls, list) and len(controls) == 1,
+        "GPS chip must expose one scenario control",
+    )
     scenario = controls[0]
     require(isinstance(scenario, dict), "GPS chip scenario control must be an object")
     require(scenario.get("id") == "scenario", "GPS chip scenario control id mismatch")
-    require((scenario.get("min"), scenario.get("max"), scenario.get("step")) == (0, 5, 1), "scenario range must be 0..5")
+    require(
+        (scenario.get("min"), scenario.get("max"), scenario.get("step")) == (0, 5, 1),
+        "scenario range must be 0..5",
+    )
 
     libraries = {
         line.strip()
@@ -138,7 +152,10 @@ def validate_assets(assets_dir: Path, firmware_dir: Path) -> None:
 
     extensions = load_json(assets_dir / ".vscode" / "extensions.json")
     require(isinstance(extensions, dict), "extensions.json must contain an object")
-    require("wokwi.wokwi-vscode" in extensions.get("recommendations", []), "Wokwi VS Code extension is not recommended")
+    require(
+        "wokwi.wokwi-vscode" in extensions.get("recommendations", []),
+        "Wokwi VS Code extension is not recommended",
+    )
 
     tasks = load_json(assets_dir / ".vscode" / "tasks.json")
     require(isinstance(tasks, dict), "tasks.json must contain an object")
@@ -154,8 +171,13 @@ def validate_assets(assets_dir: Path, firmware_dir: Path) -> None:
 
     config = load_toml(assets_dir / "wokwi.toml")
     require(config.get("wokwi", {}).get("version") == 1, "wokwi.toml version must be 1")
-    require(config.get("wokwi", {}).get("firmware") == "build/firmware.bin", "firmware artifact path mismatch")
-    require(config.get("wokwi", {}).get("elf") == "build/firmware.elf", "ELF artifact path mismatch")
+    require(
+        config.get("wokwi", {}).get("firmware") == "build/firmware.bin",
+        "firmware artifact path mismatch",
+    )
+    require(
+        config.get("wokwi", {}).get("elf") == "build/firmware.elf", "ELF artifact path mismatch"
+    )
     chips = config.get("chip", [])
     require(isinstance(chips, list) and len(chips) == 1, "wokwi.toml must define one custom chip")
     require(isinstance(chips[0], dict), "wokwi.toml custom chip must be a table")
@@ -171,8 +193,13 @@ def validate_generated_project(
 ) -> None:
     require(project_dir.is_dir(), f"generated project not found: {project_dir}")
     for relative_path in ("sketch.ino", "src", "diagram.json", "wokwi.toml", "neo-m8n.chip.c"):
-        require((project_dir / relative_path).exists(), f"generated project is missing {relative_path}")
-    require(not (project_dir / "build" / "doxygen").exists(), "ignored firmware documentation was copied")
+        require(
+            (project_dir / relative_path).exists(), f"generated project is missing {relative_path}"
+        )
+    require(
+        not (project_dir / "build" / "doxygen").exists(),
+        "ignored firmware documentation was copied",
+    )
 
     entrypoints = list(firmware_dir.glob("*.ino"))
     require(len(entrypoints) == 1, "firmware source must contain one entrypoint")
@@ -186,23 +213,41 @@ def validate_generated_project(
             relative_path = source_path.relative_to(firmware_dir)
             generated_path = project_dir / relative_path
             require(generated_path.is_file(), f"generated project is missing {relative_path}")
-            require(generated_path.read_bytes() == source_path.read_bytes(), f"generated {relative_path} is stale")
+            require(
+                generated_path.read_bytes() == source_path.read_bytes(),
+                f"generated {relative_path} is stale",
+            )
 
     for asset_path in assets_dir.rglob("*"):
         if asset_path.is_file():
             relative_path = asset_path.relative_to(assets_dir)
             generated_path = project_dir / relative_path
             require(generated_path.is_file(), f"generated project is missing asset {relative_path}")
-            require(generated_path.read_bytes() == asset_path.read_bytes(), f"generated asset {relative_path} is stale")
+            require(
+                generated_path.read_bytes() == asset_path.read_bytes(),
+                f"generated asset {relative_path} is stale",
+            )
 
     if require_build:
         for relative_path in ("build/firmware.bin", "build/firmware.elf", "neo-m8n.chip.wasm"):
             path = project_dir / relative_path
-            require(path.is_file() and path.stat().st_size > 0, f"missing build artifact {relative_path}")
+            require(
+                path.is_file() and path.stat().st_size > 0,
+                f"missing build artifact {relative_path}",
+            )
 
-        require((project_dir / "build" / "firmware.bin").read_bytes()[:1] == b"\xE9", "firmware.bin is not an ESP32 image")
-        require((project_dir / "build" / "firmware.elf").read_bytes()[:4] == b"\x7fELF", "firmware.elf is not an ELF file")
-        require((project_dir / "neo-m8n.chip.wasm").read_bytes()[:4] == b"\0asm", "custom chip is not WebAssembly")
+        require(
+            (project_dir / "build" / "firmware.bin").read_bytes()[:1] == b"\xe9",
+            "firmware.bin is not an ESP32 image",
+        )
+        require(
+            (project_dir / "build" / "firmware.elf").read_bytes()[:4] == b"\x7fELF",
+            "firmware.elf is not an ELF file",
+        )
+        require(
+            (project_dir / "neo-m8n.chip.wasm").read_bytes()[:4] == b"\0asm",
+            "custom chip is not WebAssembly",
+        )
 
 
 def parse_args() -> argparse.Namespace:

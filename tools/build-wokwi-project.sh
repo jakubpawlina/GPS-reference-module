@@ -12,10 +12,10 @@ CHIP_BINARY="${CHIP_BINARY:-neo-m8n.chip.wasm}"
 WOKWI_BUILDER_IMAGE="${WOKWI_BUILDER_IMAGE:-wokwi/builder-clang-wasm}"
 
 require_tool() {
-  if ! command -v "$1" >/dev/null 2>&1; then
-    echo "Missing required tool: $1" >&2
-    exit 1
-  fi
+	if ! command -v "$1" >/dev/null 2>&1; then
+		echo "Missing required tool: $1" >&2
+		exit 1
+	fi
 }
 
 require_tool arduino-cli
@@ -27,63 +27,63 @@ arduino_output_dir="$(mktemp -d /tmp/gps-reference-arduino-output.XXXXXX)"
 trap 'rm -rf "$arduino_build_dir" "$arduino_output_dir"' EXIT
 
 generate_project() {
-  python3 "$ROOT/tools/generate-wokwi-project.py" \
-    --firmware-dir "$FIRMWARE_DIR" \
-    --assets-dir "$ASSETS_DIR" \
-    --output-dir "$OUTPUT_DIR"
+	python3 "$ROOT/tools/generate-wokwi-project.py" \
+		--firmware-dir "$FIRMWARE_DIR" \
+		--assets-dir "$ASSETS_DIR" \
+		--output-dir "$OUTPUT_DIR"
 }
 
 compile_firmware() {
-  arduino-cli compile \
-    --fqbn "$FQBN" \
-    --warnings all \
-    --build-path "$arduino_build_dir" \
-    --output-dir "$arduino_output_dir" \
-    "$FIRMWARE_DIR"
+	arduino-cli compile \
+		--fqbn "$FQBN" \
+		--warnings all \
+		--build-path "$arduino_build_dir" \
+		--output-dir "$arduino_output_dir" \
+		"$FIRMWARE_DIR"
 }
 
 package_firmware() {
-  local firmware_bins
-  local firmware_elfs
-  mapfile -t firmware_bins < <(find "$arduino_output_dir" -maxdepth 1 -type f -name '*.ino.bin')
-  mapfile -t firmware_elfs < <(find "$arduino_output_dir" -maxdepth 1 -type f -name '*.ino.elf')
+	local firmware_bins
+	local firmware_elfs
+	mapfile -t firmware_bins < <(find "$arduino_output_dir" -maxdepth 1 -type f -name '*.ino.bin')
+	mapfile -t firmware_elfs < <(find "$arduino_output_dir" -maxdepth 1 -type f -name '*.ino.elf')
 
-  if [[ ${#firmware_bins[@]} -ne 1 || ${#firmware_elfs[@]} -ne 1 ]]; then
-    echo "Expected exactly one Arduino firmware BIN and ELF artifact" >&2
-    return 1
-  fi
+	if [[ ${#firmware_bins[@]} -ne 1 || ${#firmware_elfs[@]} -ne 1 ]]; then
+		echo "Expected exactly one Arduino firmware BIN and ELF artifact" >&2
+		return 1
+	fi
 
-  mkdir -p "$OUTPUT_DIR/build"
-  cp "${firmware_bins[0]}" "$OUTPUT_DIR/build/firmware.bin"
-  cp "${firmware_elfs[0]}" "$OUTPUT_DIR/build/firmware.elf"
+	mkdir -p "$OUTPUT_DIR/build"
+	cp "${firmware_bins[0]}" "$OUTPUT_DIR/build/firmware.bin"
+	cp "${firmware_elfs[0]}" "$OUTPUT_DIR/build/firmware.elf"
 }
 
 compile_chip() {
-  docker run --rm \
-    --user "$(id -u):$(id -g)" \
-    --volume "$OUTPUT_DIR:/work" \
-    --workdir /work \
-    "$WOKWI_BUILDER_IMAGE" \
-    clang \
-    --target=wasm32-unknown-wasi \
-    --sysroot /opt/wasi-libc \
-    -nostartfiles \
-    -Wall \
-    -Wextra \
-    -Wpedantic \
-    -Wl,--import-memory \
-    -Wl,--export-table \
-    -Wl,--no-entry \
-    -Werror \
-    -I. \
-    -o "$CHIP_BINARY" \
-    "$CHIP_SOURCE"
+	docker run --rm \
+		--user "$(id -u):$(id -g)" \
+		--volume "$OUTPUT_DIR:/work" \
+		--workdir /work \
+		"$WOKWI_BUILDER_IMAGE" \
+		clang \
+		--target=wasm32-unknown-wasi \
+		--sysroot /opt/wasi-libc \
+		-nostartfiles \
+		-Wall \
+		-Wextra \
+		-Wpedantic \
+		-Wl,--import-memory \
+		-Wl,--export-table \
+		-Wl,--no-entry \
+		-Werror \
+		-I. \
+		-o "$CHIP_BINARY" \
+		"$CHIP_SOURCE"
 }
 
 validate_project() {
-  python3 "$ROOT/tools/validate-wokwi-project.py" \
-    --project-dir "$OUTPUT_DIR" \
-    --require-build
+	python3 "$ROOT/tools/validate-wokwi-project.py" \
+		--project-dir "$OUTPUT_DIR" \
+		--require-build
 }
 
 tasklog_begin "Wokwi project build"

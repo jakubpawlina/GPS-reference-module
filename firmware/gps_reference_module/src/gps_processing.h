@@ -12,21 +12,10 @@
 namespace GpsProcessing {
 
 /** @brief High-level diagnostic state exposed by the firmware. */
-enum class DiagnosticState : uint8_t {
-  NoData,
-  NoFix,
-  Degraded2D,
-  DegradedLowSat,
-  Ok
-};
+enum class DiagnosticState : uint8_t { NoData, NoFix, Degraded2D, DegradedLowSat, Ok };
 
 /** @brief Supported NMEA sentence types handled by the parser. */
-enum class NmeaSentenceType : uint8_t {
-  Unknown,
-  Gga,
-  Gsa,
-  Rmc
-};
+enum class NmeaSentenceType : uint8_t { Unknown, Gga, Gsa, Rmc };
 
 /** @brief Accumulated GPS state built from recently parsed NMEA sentences. */
 struct GpsData {
@@ -111,7 +100,8 @@ const char *sentenceTypeToText(NmeaSentenceType type);
 /** @brief Parse one accepted sentence and merge its contents into gps. */
 void processNmeaSentence(GpsData &gps, const char *sentence, uint32_t nowMs, bool requireChecksum);
 /** @brief Build a time-relative validity snapshot used by output and LEDs. */
-GpsValiditySnapshot buildGpsSnapshot(const GpsData &gps, uint32_t nowMs, uint32_t gpsDataTimeoutMs, uint8_t minOkSatellites);
+GpsValiditySnapshot buildGpsSnapshot(const GpsData &gps, uint32_t nowMs, uint32_t gpsDataTimeoutMs,
+                                     uint8_t minOkSatellites);
 /** @brief Convert a diagnostic state to the JSON API representation. */
 const char *diagnosticStateToJson(DiagnosticState state);
 /** @brief Convert a diagnostic state to the compact OLED label. */
@@ -121,4 +111,4 @@ const char *fixTypeToText(const GpsData &gps, const GpsValiditySnapshot &snapsho
 /** @brief Convert fix information to the compact OLED label. */
 const char *fixTypeToDisplay(const GpsData &gps, const GpsValiditySnapshot &snapshot);
 
-}  // namespace GpsProcessing
+} // namespace GpsProcessing

@@ -6,5 +6,5 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." >/dev/null 2>&1 && pwd -P)"
 
 tasklog_begin "Wokwi project generation"
 tasklog_step BUILD "Generate project from tracked sources" \
-  python3 "$ROOT/tools/generate-wokwi-project.py"
+	python3 "$ROOT/tools/generate-wokwi-project.py"
 tasklog_end "1 step, output=simulation/wokwi"

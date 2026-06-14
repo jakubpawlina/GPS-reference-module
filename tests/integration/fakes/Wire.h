@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 class TwoWire {
- public:
+public:
   void end();
   void begin(uint8_t sda, uint8_t scl);
   void setClock(uint32_t clock);
@@ -17,7 +17,7 @@ class TwoWire {
   uint8_t scl() const;
   uint32_t clock() const;
 
- private:
+private:
   uint8_t sda_ = 0;
   uint8_t scl_ = 0;
   uint8_t transmissionAddress_ = 0;
