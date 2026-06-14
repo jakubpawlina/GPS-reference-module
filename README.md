@@ -19,6 +19,17 @@ An ESP32 validates and parses NMEA data, presents the current state on an OLED
 and LEDs, and streams structured JSON over USB. A Raspberry Pi stores the data
 in SQLite and exposes a browser dashboard, REST API, and SSE stream.
 
+## Project Status
+
+The physical hardware has been assembled and integrated into the test-system
+rack. An implementation based on this project has also been deployed and is
+operating as part of the test system.
+
+The system can also be evaluated without the physical installation. The ESP32,
+GPS receiver, OLED, and status LEDs can be simulated in Wokwi, while the
+repository includes host-side firmware tests, simulated peripherals, a custom
+GPS chip model, and a local service mode with generated GPS data.
+
 ## Highlights
 
 - Parses NMEA GGA, GSA, and RMC sentences at 1 Hz
