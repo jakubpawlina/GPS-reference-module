@@ -388,10 +388,11 @@ static void parseRmc(GpsData &gps, char *fields[], int count, uint32_t nowMs) {
   }
 }
 
-void processNmeaSentence(GpsData &gps, const char *sentence, uint32_t nowMs, bool requireChecksum) {
+void processNmeaSentence(GpsData &gps, const char *sentence, uint32_t nowMs, bool requireChecksum,
+                         bool checksumAlreadyVerified) {
   gps.rawSentenceCount++;
 
-  const bool checksumOk = verifyNmeaChecksum(sentence, requireChecksum);
+  const bool checksumOk = checksumAlreadyVerified || verifyNmeaChecksum(sentence, requireChecksum);
   if (!checksumOk) {
     gps.checksumErrorCount++;
     return;

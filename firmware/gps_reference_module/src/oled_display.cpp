@@ -58,7 +58,7 @@ uint8_t probeOledAddress() {
 
   const uint8_t candidates[] = {DisplayConfig::I2C_ADDRESS, DisplayConfig::I2C_ADDRESS_ALT};
 
-  for (uint8_t i = 0; i < sizeof(candidates); i++) {
+  for (uint8_t i = 0; i < sizeof(candidates) / sizeof(candidates[0]); i++) {
     Wire.beginTransmission(candidates[i]);
     if (Wire.endTransmission() == 0) {
       return candidates[i];

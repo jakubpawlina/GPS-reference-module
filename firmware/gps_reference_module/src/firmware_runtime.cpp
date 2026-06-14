@@ -40,7 +40,8 @@ GpsProcessing::GpsValiditySnapshot buildGpsSnapshot(uint32_t nowMs) {
 void processNmeaSentence(const char *sentence) {
   const bool checksumOk = GpsProcessing::verifyNmeaChecksum(sentence, NmeaConfig::REQUIRE_CHECKSUM);
   SerialJsonReporter::reportRawNmeaJson(sentence, checksumOk);
-  GpsProcessing::processNmeaSentence(state.gps, sentence, millis(), NmeaConfig::REQUIRE_CHECKSUM);
+  GpsProcessing::processNmeaSentence(state.gps, sentence, millis(), NmeaConfig::REQUIRE_CHECKSUM,
+                                     checksumOk);
 }
 
 void readGpsSerial() {

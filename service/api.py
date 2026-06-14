@@ -42,6 +42,7 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
         yield
     finally:
         await reader.stop()
+        await database.close()
 
 
 # ── Application ────────────────────────────────────────────────────────────────

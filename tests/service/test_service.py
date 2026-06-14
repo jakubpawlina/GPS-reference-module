@@ -57,6 +57,12 @@ TEST_DESCRIPTIONS: dict[str, str] = {
     "test_database_cleanup_removes_oldest_rows": (
         "Enforces the configured storage threshold by removing the oldest records first."
     ),
+    "test_database_close_is_idempotent": (
+        "Calling close() twice does not raise so shutdown paths are robust."
+    ),
+    "test_database_operations_fail_after_close": (
+        "Operations on a closed database raise RuntimeError immediately."
+    ),
     "test_api_rejects_invalid_ranges_and_webhooks": (
         "Rejects reversed time windows and non-HTTP webhook destinations before I/O."
     ),
@@ -140,6 +146,7 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
 
     async def asyncTearDown(self) -> None:
         await reader.stop()
+        await database.close()
         config.DB_PATH = self.original_db_path
         config.MAX_DB_BYTES = self.original_max_db_bytes
         self.temp_dir.cleanup()
@@ -211,6 +218,27 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(ctx.exception.status_code, 503)
         finally:
             reader.current_state = original_state
+
+    async def test_database_close_is_idempotent(self) -> None:
+        """Calling close() twice must not raise so shutdown paths are robust."""
+        await database.close()
+        await database.close()
+        # Re-open so tearDown's close() and subsequent tests still work.
+        config.DB_PATH = str(Path(self.temp_dir.name) / "positions.db")
+        await database.init()
+
+    async def test_database_operations_fail_after_close(self) -> None:
+        """Operations on a closed connection raise RuntimeError immediately."""
+        await database.close()
+        with self.assertRaises(RuntimeError):
+            await database.insert({"state": "REFERENCE_OK"})
+        with self.assertRaises(RuntimeError):
+            await database.since(0)
+        with self.assertRaises(RuntimeError):
+            await database.stats()
+        # Re-open so tearDown's close() and subsequent tests still work.
+        config.DB_PATH = str(Path(self.temp_dir.name) / "positions.db")
+        await database.init()
 
     async def test_reader_skips_malformed_json(self) -> None:
         """Lines that are not valid JSON must be silently discarded without crashing."""
@@ -296,6 +324,7 @@ class ApiHttpTests(unittest.IsolatedAsyncioTestCase):
 
     async def asyncTearDown(self) -> None:
         await self.client.aclose()
+        await database.close()
         config.DB_PATH = self._orig_db_path
         config.MAX_DB_BYTES = self._orig_max_db_bytes
         config.CLOUD_WEBHOOK = self._orig_webhook

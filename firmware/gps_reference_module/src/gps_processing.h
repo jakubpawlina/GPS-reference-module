@@ -97,8 +97,14 @@ bool verifyNmeaChecksum(const char *sentence, bool requireChecksum);
 NmeaSentenceType detectSentenceTypeFromRaw(const char *sentence);
 /** @brief Convert a sentence type enum to protocol text. */
 const char *sentenceTypeToText(NmeaSentenceType type);
-/** @brief Parse one accepted sentence and merge its contents into gps. */
-void processNmeaSentence(GpsData &gps, const char *sentence, uint32_t nowMs, bool requireChecksum);
+/** @brief Parse one accepted sentence and merge its contents into gps.
+ *
+ * When checksumAlreadyVerified is true the caller has already validated the
+ * checksum — the function skips re-verification and treats the sentence as
+ * accepted.  Pass false to perform the checksum check internally.
+ */
+void processNmeaSentence(GpsData &gps, const char *sentence, uint32_t nowMs, bool requireChecksum,
+                         bool checksumAlreadyVerified = false);
 /** @brief Build a time-relative validity snapshot used by output and LEDs. */
 GpsValiditySnapshot buildGpsSnapshot(const GpsData &gps, uint32_t nowMs, uint32_t gpsDataTimeoutMs,
                                      uint8_t minOkSatellites);
