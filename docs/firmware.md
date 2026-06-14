@@ -44,30 +44,34 @@ The firmware keeps its pure logic outside the Arduino runtime so it can be
 tested on the host without ESP32 hardware. The host-side test target covers:
 
 - NMEA checksum validation and sentence parsing
+- parser rejection counters and talker-prefix detection
 - diagnostic-state transitions
+- timeout boundaries and `millis()` rollover behavior
 - serial line framing and overflow handling
-- display/LED presentation mapping
+- display formatting and every LED-state mapping
 
 Run the firmware logic tests with:
 
 ```bash
-mise run firmware:test
+mise run test:unit
 ```
 
-These tests compile the pure firmware modules with the host `g++` compiler.
+These tests compile the pure firmware modules with strict warnings plus Address
+and UndefinedBehavior sanitizers using the host `g++` compiler.
 
-The helper scripts are still available directly if you do not want to use the
-task aliases:
+Run the firmware runtime integration tests with:
 
 ```bash
-./tools/run-firmware-checks.sh test
-./tools/run-firmware-checks.sh compile
+mise run test:integration
 ```
+
+This runs the real firmware orchestration with simulated UART, I2C, OLED, GPIO,
+USB serial, and clock peripherals.
 
 API documentation can be generated with:
 
 ```bash
-mise run firmware:docs
+mise run docs:generate
 mise run docs:serve
 ```
 

@@ -69,8 +69,8 @@ receiver, SSD1306 OLED, and status LEDs.
 | Developer machine | Git, `mise`, Bash, standard Unix tools | All development workflows |
 | Simulation | Docker Engine | Building the custom GPS WebAssembly component |
 | Simulation | VS Code and Wokwi extension | Launching the local simulator |
-| Firmware tests | C++ compiler (`g++`) | `mise run firmware:test` |
-| API documentation | Doxygen | `mise run firmware:docs` or `mise run docs:serve` |
+| Firmware tests | C++ compiler (`g++`) | `mise run test:unit` |
+| API documentation | Doxygen | `mise run docs:generate` or `mise run docs:serve` |
 | Raspberry Pi | Python 3.9+, `sudo`, `systemd`, `refmod` user | Service deployment |
 | Initial setup | Internet access | Toolchains, packages, libraries, and container images |
 
@@ -138,7 +138,9 @@ mise run simulation:build
 
 Open `simulation/wokwi/` as a VS Code workspace and run
 **Wokwi: Start Simulator** from the command palette. Use `Ctrl+Shift+B` to
-rebuild after firmware changes.
+rebuild after firmware changes. The generated
+[`TESTING.md`](simulation/assets/TESTING.md) provides a physical-like acceptance
+test for the OLED, four status LEDs, and serial JSON output.
 
 > [!NOTE]
 > Docker is required only to compile the custom Wokwi GPS chip. It is not
@@ -288,17 +290,39 @@ sudo systemctl restart gps-reference
 
 ### Development
 
-Common project tasks:
+Start with:
+
+```bash
+mise run help
+```
+
+Recommended flow:
+
+| Stage | Command |
+|---|---|
+| First setup | `mise install && mise run firmware:bootstrap` |
+| Fast feedback | `mise run test:unit` |
+| Runtime or hardware-facing changes | `mise run test:integration` |
+| Wokwi changes | `mise run test:simulation` |
+| Before committing | `mise run test:all` |
+| Before opening a pull request | `mise run verify` |
+| Interactive simulator | `mise run simulation:build`, then start Wokwi in VS Code |
+
+Task reference:
 
 | Command | Purpose |
 |---|---|
+| `mise run help` | Show the recommended development workflow |
 | `mise run firmware:bootstrap` | Install the ESP32 core and Arduino libraries |
-| `mise run firmware:test` | Run host-side firmware logic tests |
+| `mise run test:unit` | Test pure firmware logic |
+| `mise run test:integration` | Test the complete firmware runtime with simulated peripherals |
+| `mise run test:simulation` | Test Wokwi assets, generation, wiring, and GPS chip logic |
+| `mise run test:all` | Run every host-side test layer |
+| `mise run verify` | Run all tests and build the ESP32 and Wokwi projects |
 | `mise run firmware:compile` | Compile firmware for ESP32 |
-| `mise run firmware:verify` | Run tests and firmware compilation |
 | `mise run simulation:generate` | Generate simulator sources without compiling |
 | `mise run simulation:build` | Build the complete VS Code simulation |
-| `mise run firmware:docs` | Generate Doxygen documentation |
+| `mise run docs:generate` | Generate Doxygen documentation |
 | `mise run docs:serve` | Serve generated firmware documentation locally |
 | `mise run deploy:install` | Install or upgrade the service on the current Pi |
 | `mise run deploy:uninstall` | Remove the service while preserving its data |
@@ -320,15 +344,15 @@ contributions are welcome.
 Recommended verification:
 
 ```bash
-# Firmware logic and ESP32 compilation
-mise run firmware:verify
-
-# Full Wokwi project, when firmware or simulation assets change
-mise run simulation:build
+# Complete test and build gate
+mise run verify
 
 # Firmware API documentation, when public headers change
-mise run firmware:docs
+mise run docs:generate
 ```
+
+See [tests/README.md](tests/README.md) for test-layer boundaries, dependencies,
+and compatibility commands.
 
 Pull requests should explain the problem, implementation, hardware or
 simulation assumptions, and verification commands. Include screenshots or
@@ -362,7 +386,10 @@ gps-reference-module/
 │   ├── requirements.txt           Python dependencies
 │   └── ...
 ├── simulation/assets/             Wokwi diagram, configuration, and GPS chip
-├── tests/firmware/                Host-side firmware tests
+├── tests/
+│   ├── firmware/                  Pure firmware unit tests
+│   ├── integration/               Runtime and simulated-peripheral tests
+│   └── simulation/                Wokwi project and custom-chip tests
 ├── tools/                         Build, simulation, and deployment scripts
 ├── docs/                          Technical documentation
 ├── mise.toml                      Tool versions and task definitions

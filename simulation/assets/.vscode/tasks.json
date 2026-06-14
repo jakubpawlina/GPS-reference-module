@@ -4,7 +4,14 @@
     {
       "label": "Wokwi: Build Simulation",
       "type": "shell",
-      "command": "${workspaceFolder}/../../tools/build-wokwi-project.sh",
+      "command": "mise",
+      "args": [
+        "run",
+        "simulation:build"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/../.."
+      },
       "group": {
         "kind": "build",
         "isDefault": true

@@ -94,8 +94,8 @@ body:
       label: Verification performed
       description: List relevant commands and their results.
       placeholder: |
-        mise run firmware:verify
-        mise run simulation:build
+        mise run test:all
+        mise run verify
         journalctl -u gps-reference -n 100
 
   - type: checkboxes

@@ -60,6 +60,11 @@ Open `simulation/wokwi/` as the VS Code workspace. Press `F1` and select
 **Wokwi: Start Simulator**. After firmware changes, run the default VS Code
 build task (`Ctrl+Shift+B`) before restarting the simulator.
 
+Use `simulation/wokwi/TESTING.md` as the interactive acceptance test. It lists
+the expected OLED text, LED pattern, and parsed serial state for every GPS
+scenario. This exercises the compiled ESP32 firmware inside Wokwi and is the
+closest simulation equivalent to observing the physical module.
+
 The simulated GPS receiver is a custom `chip-neo-m8n` component and provides a
 **Scenario** control:
 
@@ -89,3 +94,35 @@ mise run simulation:build
 
 Use `mise run simulation:generate` only when source files are needed without
 compiled firmware and custom-chip artifacts.
+
+## Validation
+
+Run fast source-level checks without Docker:
+
+```bash
+mise run test:simulation
+```
+
+This validates the Wokwi JSON/TOML configuration, firmware-to-diagram pin
+mapping, generator behavior, ignored-file handling, and custom GPS NMEA output.
+
+Run the firmware runtime integration test:
+
+```bash
+mise run test:integration
+```
+
+This compiles the real firmware runtime with host-side Arduino, UART, I2C,
+OLED, GPIO, and clock fakes. It feeds the same GPS states used by the Wokwi
+custom chip and verifies startup configuration, serial JSON, OLED output, raw
+sentence counts, and status LEDs for `NO DATA`, `NO FIX`, `2D`, low-satellite,
+and healthy-reference scenarios.
+
+Run the full verification workflow, including firmware and WebAssembly builds:
+
+```bash
+mise run verify
+```
+
+The final step verifies that the generated ESP32 BIN, ELF, and custom-chip WASM
+files exist and have the expected binary signatures.

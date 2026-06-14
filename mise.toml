@@ -6,42 +6,58 @@ python = "3.13"
 # Install it separately with:
 # sudo apt update && sudo apt install doxygen
 
+[tasks.help]
+description = "Start here: show the recommended development workflow"
+run = "./tools/show-workflows.sh"
+
 [tasks."firmware:bootstrap"]
-description = "Install Arduino core and libraries required by the firmware project"
+description = "First setup: install the ESP32 core and Arduino libraries"
 run = "./tools/setup-firmware-toolchain.sh"
 
-[tasks."firmware:test"]
-description = "Run host-side firmware tests"
-run = "./tools/run-firmware-checks.sh test"
-
 [tasks."firmware:compile"]
-description = "Compile the firmware for esp32:esp32:esp32"
+description = "Build only the ESP32 firmware"
 run = "./tools/run-firmware-checks.sh compile"
 
-[tasks."firmware:verify"]
-description = "Run the host-side tests and the ESP32 compile check"
-run = "./tools/run-firmware-checks.sh test && ./tools/run-firmware-checks.sh compile"
-
-[tasks."firmware:docs"]
-description = "Generate firmware API docs with Doxygen"
+[tasks."docs:generate"]
+description = "Docs: generate firmware API documentation"
 run = "./tools/run-firmware-checks.sh docs"
 
 [tasks."docs:serve"]
-description = "Serve the generated firmware API docs locally"
+description = "Docs: generate and serve firmware API documentation"
 run = "./tools/serve-firmware-docs.sh"
 
 [tasks."deploy:install"]
-description = "Install or upgrade the Raspberry Pi service on the current machine"
+description = "Deploy: install or upgrade the Raspberry Pi service"
 run = "./tools/deploy-rpi-service.sh"
 
 [tasks."deploy:uninstall"]
-description = "Remove the Raspberry Pi service from the current machine"
+description = "Deploy: remove the Raspberry Pi service"
 run = "./tools/deploy-rpi-service.sh --uninstall"
 
 [tasks."simulation:generate"]
-description = "Regenerate the local Wokwi project from the source firmware"
-run = "python3 tools/generate-wokwi-project.py"
+description = "Wokwi: generate sources only, without build artifacts"
+run = "./tools/generate-wokwi-project.sh"
 
 [tasks."simulation:build"]
-description = "Build the generated Wokwi VS Code simulation project"
+description = "Wokwi: build/rebuild the complete VS Code project"
 run = "./tools/build-wokwi-project.sh"
+
+[tasks."test:unit"]
+description = "Develop: run fast firmware logic tests"
+run = "./tools/run-tests.sh unit"
+
+[tasks."test:integration"]
+description = "Develop: test firmware runtime and simulated peripherals"
+run = "./tools/run-tests.sh integration"
+
+[tasks."test:simulation"]
+description = "Develop: test Wokwi assets, generator, and GPS chip"
+run = "./tools/run-tests.sh simulation"
+
+[tasks."test:all"]
+description = "Before commit: run all host-side tests without Docker"
+run = "./tools/run-tests.sh all"
+
+[tasks.verify]
+description = "Before PR: run all tests and builds (requires Docker)"
+run = "./tools/run-verification.sh"

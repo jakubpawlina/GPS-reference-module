@@ -15,13 +15,15 @@
 
 ## Verification
 
-<!-- Check every command that was run successfully. Add other checks below. -->
+<!-- Check every command that was run successfully. Prefer the narrowest useful layer during development and the full gate before merge. -->
 
-- [ ] `mise run firmware:test`
-- [ ] `mise run firmware:compile`
-- [ ] `mise run firmware:verify`
-- [ ] `mise run simulation:build`
-- [ ] `mise run firmware:docs`
+- [ ] `mise run test:unit`
+- [ ] `mise run test:integration`
+- [ ] `mise run test:simulation`
+- [ ] `mise run test:all`
+- [ ] `mise run verify`
+- [ ] `mise run docs:generate`
+- [ ] Interactive VS Code Wokwi verification
 - [ ] Manual hardware verification
 - [ ] Manual API or dashboard verification
 

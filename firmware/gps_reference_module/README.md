@@ -39,10 +39,10 @@ mise install
 mise run firmware:bootstrap
 ```
 
-Run the host-side verification suite:
+Run the firmware unit tests:
 
 ```bash
-mise run firmware:test
+mise run test:unit
 ```
 
 Run an ESP32 compile using `arduino-cli`:
@@ -54,11 +54,11 @@ mise run firmware:compile
 Run the normal verification set in one step:
 
 ```bash
-mise run firmware:verify
+mise run verify
 ```
 
 Generate API documentation:
 
 ```bash
-mise run firmware:docs
+mise run docs:generate
 ```
