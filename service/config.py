@@ -2,18 +2,30 @@
 
 import os
 
+
+def _int_env(name: str, default: int) -> int:
+    """Read an integer environment variable with a descriptive error on bad input."""
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        raise ValueError(f"Environment variable {name}={raw!r} is not a valid integer") from None
+
+
 # Serial
 SERIAL_PORT: str = os.getenv("GPS_SERIAL_PORT", "/dev/ttyUSB0")
-BAUD_RATE: int = int(os.getenv("GPS_BAUD_RATE", "115200"))
+BAUD_RATE: int = _int_env("GPS_BAUD_RATE", 115200)
 
 # Storage
 DB_PATH: str = os.getenv("GPS_DB_PATH", "/var/lib/gps-reference/data.db")
-MAX_DB_BYTES: int = int(os.getenv("GPS_MAX_DB_BYTES", str(4 * 1024**3)))  # 4 GB default
+MAX_DB_BYTES: int = _int_env("GPS_MAX_DB_BYTES", 4 * 1024**3)  # 4 GB default
 CLEANUP_FRAC: float = 0.05  # fraction of rows to delete when the cap is approached
 
 # HTTP server
 HTTP_HOST: str = os.getenv("GPS_HTTP_HOST", "0.0.0.0")
-HTTP_PORT: int = int(os.getenv("GPS_HTTP_PORT", "8000"))
+HTTP_PORT: int = _int_env("GPS_HTTP_PORT", 8000)
 
 # Cloud upload - optional POST target for /api/upload
 CLOUD_WEBHOOK: str = os.getenv("GPS_CLOUD_WEBHOOK", "")

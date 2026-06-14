@@ -93,11 +93,19 @@ async def stream():
 
     async def _generate():
         last = None
+        last_keepalive = asyncio.get_event_loop().time()
         while True:
             state = reader.current_state
+            now = asyncio.get_event_loop().time()
             if state and state != last:
                 last = state
                 yield f"data: {json.dumps(state)}\n\n"
+                last_keepalive = now
+            elif now - last_keepalive >= 15:
+                # SSE comment - keeps the connection alive through proxies that
+                # close idle connections after ~60 s of silence.
+                yield ": keepalive\n\n"
+                last_keepalive = now
             await asyncio.sleep(1)
 
     return StreamingResponse(_generate(), media_type="text/event-stream")
@@ -191,12 +199,16 @@ async def upload(
     # Use separate connect/read timeouts so a slow webhook body read does not
     # stall the event loop longer than the combined 35-second ceiling.
     timeout = httpx.Timeout(connect=5.0, read=30.0, write=10.0, pool=5.0)
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        try:
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
             resp = await client.post(url, json={"source": "gps-reference", "records": rows})
-            resp.raise_for_status()
-        except httpx.HTTPError as exc:
-            raise HTTPException(502, detail=f"Webhook error: {exc}")
+    except httpx.RequestError as exc:
+        raise HTTPException(502, detail=f"Webhook connection error: {exc}") from exc
+
+    try:
+        resp.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(502, detail=f"Webhook returned {resp.status_code}") from exc
 
     return {"uploaded": len(rows), "next_cursor": rows[-1]["id"], "http_status": resp.status_code}
 

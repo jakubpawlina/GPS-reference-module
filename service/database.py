@@ -105,7 +105,12 @@ async def insert(record: dict) -> int:
     if row_id is None:
         raise RuntimeError("SQLite did not return an id for the inserted position")
 
-    await _cleanup_if_needed()
+    try:
+        await _cleanup_if_needed()
+    except Exception:
+        # Cleanup failures (e.g. VACUUM on a locked DB) must not interrupt
+        # the serial reader loop - log and continue.
+        log.exception("Storage cleanup failed; continuing without cleanup")
     return row_id
 
 

@@ -19,6 +19,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 from httpx import ASGITransport, AsyncClient
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -101,6 +102,21 @@ TEST_DESCRIPTIONS: dict[str, str] = {
     ),
     "test_upload_skips_when_no_new_records": (
         "POST /api/upload returns uploaded=0 immediately when the cursor is already up to date."
+    ),
+    "test_upload_incremental_cursor": (
+        "POST /api/upload with since_cursor transfers only the records after the cursor."
+    ),
+    "test_upload_returns_502_on_webhook_error": (
+        "POST /api/upload returns 502 when the webhook responds with an HTTP error status."
+    ),
+    "test_since_rejects_zero_limit": (
+        "GET /api/records/since returns 422 when limit is 0."
+    ),
+    "test_since_rejects_overlimit": (
+        "GET /api/records/since returns 422 when limit exceeds the configured maximum."
+    ),
+    "test_range_ts_to_defaults_to_now": (
+        "GET /api/records/range accepts a request without ts_to and defaults the window end to now."
     ),
     "test_endpoints_lists_all_paths": (
         "GET /api/endpoints lists every documented API path in the catalogue."
@@ -448,6 +464,26 @@ class ApiHttpTests(unittest.IsolatedAsyncioTestCase):
         body = resp.json()
         self.assertEqual(body["uploaded"], 0)
         self.assertEqual(body["next_cursor"], 999)
+
+    async def test_upload_returns_502_on_webhook_error(self) -> None:
+        await database.insert({"state": "REFERENCE_OK"})
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 500
+        mock_resp.raise_for_status.side_effect = httpx.HTTPStatusError(
+            "Internal Server Error", request=MagicMock(), response=mock_resp
+        )
+        mock_http = AsyncMock()
+        mock_http.__aenter__ = AsyncMock(return_value=mock_http)
+        mock_http.__aexit__ = AsyncMock(return_value=False)
+        mock_http.post = AsyncMock(return_value=mock_resp)
+
+        config.CLOUD_WEBHOOK = "https://example.com/webhook"
+        with patch("httpx.AsyncClient", return_value=mock_http):
+            resp = await self.client.post("/api/upload?since_cursor=0")
+
+        self.assertEqual(resp.status_code, 502)
+        self.assertIn("500", resp.json()["detail"])  # detail contains the upstream status
 
     async def test_upload_incremental_cursor(self) -> None:
         """A second upload from next_cursor transfers only the new records."""
