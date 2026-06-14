@@ -45,6 +45,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "firmware_settings.h"
+
 namespace GpsProcessing {
 
 static uint32_t elapsedMs(uint32_t nowMs, uint32_t timestampMs) {
@@ -395,7 +397,7 @@ void processNmeaSentence(GpsData &gps, const char *sentence, uint32_t nowMs, boo
     return;
   }
 
-  char work[144];
+  char work[NmeaConfig::BUFFER_SIZE];
   if (strlen(sentence) >= sizeof(work)) {
     return;
   }

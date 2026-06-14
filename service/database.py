@@ -167,14 +167,6 @@ async def _cleanup_if_needed() -> None:
 # ── Queries ────────────────────────────────────────────────────────────────────
 
 
-async def latest() -> dict | None:
-    async with aiosqlite.connect(config.DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT * FROM positions ORDER BY id DESC LIMIT 1") as cur:
-            row = await cur.fetchone()
-            return dict(row) if row else None
-
-
 async def since(cursor: int, limit: int = 1000) -> list[dict]:
     """Records with id > cursor, oldest-first."""
     async with aiosqlite.connect(config.DB_PATH) as db:

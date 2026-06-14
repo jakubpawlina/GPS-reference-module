@@ -136,9 +136,12 @@ cat >"$OVERRIDE_DIR/local.conf" <<EOF
 User=${APP_USER}
 Group=${APP_USER}
 Environment=GPS_SERIAL_PORT=${SERIAL_PORT}
+Environment=GPS_DB_PATH=${DATA_DIR}/data.db
 Environment=GPS_HTTP_PORT=${HTTP_PORT}
 Environment=GPS_MAX_DB_BYTES=${MAX_DB_BYTES}
-Environment=GPS_DB_PATH=${DATA_DIR}/data.db
+# Uncomment to override defaults:
+# Environment=GPS_BAUD_RATE=115200
+# Environment=GPS_HTTP_HOST=0.0.0.0
 EOF
 
 if [[ -n "$CLOUD_WEBHOOK" ]]; then

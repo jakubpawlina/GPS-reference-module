@@ -37,7 +37,11 @@ def load_toml(path: Path) -> dict:
 
 
 def firmware_pins(firmware_dir: Path) -> dict[str, int]:
-    settings = (firmware_dir / "src" / "firmware_settings.h").read_text()
+    settings_path = firmware_dir / "src" / "firmware_settings.h"
+    try:
+        settings = settings_path.read_text()
+    except OSError as error:
+        raise SystemExit(f"validation failed: cannot read {settings_path}: {error}") from error
     names = (
         "GPS_RX",
         "GPS_TX",
@@ -52,6 +56,7 @@ def firmware_pins(firmware_dir: Path) -> dict[str, int]:
     for name in names:
         match = re.search(rf"\b{name}\s*=\s*(\d+)\s*;", settings)
         require(match is not None, f"missing PinConfig::{name}")
+        assert match is not None  # narrowing for type checker (require raises on None)
         pins[name] = int(match.group(1))
     require(len(set(pins.values())) == len(pins), "firmware GPIO assignments must be unique")
     return pins

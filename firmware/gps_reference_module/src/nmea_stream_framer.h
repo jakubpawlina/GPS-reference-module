@@ -3,6 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "firmware_settings.h"
+
 /**
  * @brief Byte-stream to line-oriented NMEA framing.
  *
@@ -25,7 +27,7 @@ public:
   FeedResult feed(char c, char *completedSentence, size_t completedSentenceSize);
 
 private:
-  char buffer_[144];
+  char buffer_[NmeaConfig::BUFFER_SIZE];
   size_t position_;
 };
 

@@ -19,6 +19,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from urllib.parse import urlparse
 
@@ -34,7 +35,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI):
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     await database.init()
     await reader.start()
     try:
@@ -93,10 +94,10 @@ async def stream():
 
     async def _generate():
         last = None
-        last_keepalive = asyncio.get_event_loop().time()
+        last_keepalive = asyncio.get_running_loop().time()
         while True:
             state = reader.current_state
-            now = asyncio.get_event_loop().time()
+            now = asyncio.get_running_loop().time()
             if state and state != last:
                 last = state
                 yield f"data: {json.dumps(state)}\n\n"

@@ -30,7 +30,6 @@ log = logging.getLogger("reader")
 
 # Live state shared with API handlers (written only from _loop).
 current_state: dict = {}
-last_row_id: int = 0
 
 _stop: threading.Event = threading.Event()
 _task: asyncio.Task | None = None
@@ -111,7 +110,7 @@ async def _loop() -> None:
     ser: serial.Serial = await asyncio.to_thread(_open_port)
     log.info("Serial connected: %s @ %d baud", config.SERIAL_PORT, config.BAUD_RATE)
 
-    global current_state, last_row_id
+    global current_state
 
     loop = asyncio.get_running_loop()
     deadline = loop.time() + 10.0
@@ -142,7 +141,7 @@ async def _loop() -> None:
 
             if msg_type == "parsed_state":
                 current_state = msg
-                last_row_id = await database.insert(msg)
+                await database.insert(msg)
             elif msg_type == "startup":
                 log.info("ESP32 firmware %s", msg.get("version", "?"))
             elif msg_type == "error":

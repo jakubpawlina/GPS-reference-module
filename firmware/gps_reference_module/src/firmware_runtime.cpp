@@ -18,7 +18,7 @@ namespace {
 struct FirmwareState {
   GpsProcessing::GpsData gps;
   NmeaStreamFramer::LineAccumulator framer;
-  char nmeaSentence[144] = "";
+  char nmeaSentence[NmeaConfig::BUFFER_SIZE] = "";
   bool displayReady = false;
   uint8_t detectedOledAddress = 0;
   uint32_t lastDisplayUpdateMs = 0;

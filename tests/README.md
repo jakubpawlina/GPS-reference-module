@@ -18,6 +18,8 @@ language.
 | Simulation | `mise run test:simulation` | Wokwi project assets, generator behavior, wiring contract, and custom GPS chip output | None |
 | Service | `mise run test:service` | SQLite persistence and cleanup, API validation, and serial-reader lifecycle | None |
 | All tests | `mise run test:all` | Every host-side test layer | None |
+| Format | `mise run format:check` | Python (ruff), C++ (clang-format), and shell (shfmt) formatting gate | None |
+| Lint | `mise run lint` | Python (ruff check) and shell static analysis | None |
 | Full verification | `mise run verify` | All tests plus ESP32 and Wokwi WebAssembly builds | Docker for the custom chip build |
 
 All compiled host tests use strict warnings. C++ tests additionally run with

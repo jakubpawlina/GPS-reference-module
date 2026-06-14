@@ -38,6 +38,8 @@ def validate() -> None:
     so misconfigured deployments fail immediately rather than misbehaving at
     runtime.
     """
+    if not SERIAL_PORT:
+        raise ValueError("GPS_SERIAL_PORT must not be empty")
     if BAUD_RATE <= 0:
         raise ValueError(f"GPS_BAUD_RATE must be a positive integer, got {BAUD_RATE!r}")
     if not 1 <= HTTP_PORT <= 65535:
