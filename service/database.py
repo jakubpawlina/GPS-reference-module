@@ -87,12 +87,22 @@ async def init() -> None:
     async with _db.execute("PRAGMA auto_vacuum") as cur:
         row = await cur.fetchone()
         current_mode = row[0] if row else 0
+
     if current_mode == 0:
-        # auto_vacuum can only be changed on an empty/new database; apply and
-        # VACUUM once so incremental reclamation works on future deletes.
-        await _db.execute("PRAGMA auto_vacuum = INCREMENTAL")
-        await _db.execute("VACUUM")
-        log.info("Enabled incremental auto_vacuum on new database")
+        # Check if the database is empty (or new).
+        async with _db.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table'") as cur:
+            row = await cur.fetchone()
+            is_empty = row[0] == 0 if row else True
+
+        if is_empty:
+            await _db.execute("PRAGMA auto_vacuum = INCREMENTAL")
+            await _db.execute("VACUUM")
+            log.info("Enabled incremental auto_vacuum on new database")
+        else:
+            log.warning(
+                "Database auto_vacuum mode is 0 (NONE) but database is not empty. "
+                "Incremental vacuuming cannot be enabled safely."
+            )
     elif current_mode != 2:
         log.warning(
             "Database auto_vacuum mode is %d (expected 2=INCREMENTAL); "
@@ -197,9 +207,20 @@ async def _cleanup_if_needed() -> None:
     await db.commit()
     async with db.execute("PRAGMA wal_checkpoint(TRUNCATE)") as cur:
         await cur.fetchone()
-    # Use incremental_vacuum for bounded-time page reclamation instead of
-    # VACUUM, which rewrites the entire database and blocks all operations.
-    await db.execute("PRAGMA incremental_vacuum")
+
+    # Reclaim pages until size is safely below 90% of the cap.
+    target_size = config.MAX_DB_BYTES * 0.90
+    while _storage_size_bytes() > target_size:
+        # Get free page count.
+        async with db.execute("PRAGMA freelist_count") as cur:
+            row = await cur.fetchone()
+            freelist_count = row[0] if row else 0
+
+        if freelist_count == 0:
+            break
+
+        # Reclaim a batch of pages (e.g., 100).
+        await db.execute("PRAGMA incremental_vacuum(100)")
 
     new_size = _storage_size_bytes()
     log.info(

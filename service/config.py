@@ -1,5 +1,6 @@
 """Service configuration - all settings read from environment variables."""
 
+import math
 import os
 
 
@@ -70,9 +71,9 @@ def validate() -> None:
         raise ValueError(
             f"GPS_SERIAL_MAX_LINE_BYTES must be at least 256, got {SERIAL_MAX_LINE_BYTES!r}"
         )
-    if STATE_STALE_SECONDS <= 0:
+    if not math.isfinite(STATE_STALE_SECONDS) or STATE_STALE_SECONDS <= 0:
         raise ValueError(
-            f"GPS_STATE_STALE_SECONDS must be greater than zero, got {STATE_STALE_SECONDS!r}"
+            f"GPS_STATE_STALE_SECONDS must be a finite positive number, got {STATE_STALE_SECONDS!r}"
         )
     if not 1 <= HTTP_PORT <= 65535:
         raise ValueError(f"GPS_HTTP_PORT must be between 1 and 65535, got {HTTP_PORT!r}")

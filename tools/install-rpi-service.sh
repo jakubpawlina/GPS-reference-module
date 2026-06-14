@@ -114,8 +114,8 @@ step "Checking Python version…"
 PYTHON="$(command -v python3)" || die "python3 not found"
 PY_VER="$("$PYTHON" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
 info "Python $PY_VER"
-"$PYTHON" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)' ||
-	die "Python 3.9+ required (found $PY_VER)"
+"$PYTHON" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' ||
+	die "Python 3.10+ required (found $PY_VER)"
 
 # ── System packages ────────────────────────────────────────────────────────────
 step "Installing system packages…"
@@ -224,11 +224,13 @@ info "Generated settings written to $GENERATED_OVERRIDE"
 if [[ -f "$OVERRIDE_DIR/local.conf" ]]; then
 	info "Preserved administrator overrides in $OVERRIDE_DIR/local.conf"
 else
-	cat >"$OVERRIDE_DIR/local.conf.example" <<'EOF'
+	cat >"$OVERRIDE_DIR/local.conf.example" <<EOF
 [Service]
 # Administrator-owned overrides go in local.conf. The installer never overwrites it.
 # Environment="GPS_HTTP_HOST=127.0.0.1"
 # Environment="GPS_API_KEY=replace-with-a-secret"
+# If overriding GPS_DB_PATH, you must also add the new path to ReadWritePaths:
+# ReadWritePaths=/your/custom/db/dir
 EOF
 	chmod 600 "$OVERRIDE_DIR/local.conf.example"
 	info "Administrator overrides can be added in $OVERRIDE_DIR/local.conf"

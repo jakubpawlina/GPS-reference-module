@@ -3,7 +3,7 @@
 ## Requirements
 
 - Raspberry Pi 4 (any RAM) running Raspberry Pi OS Bookworm / Debian Trixie
-- Python 3.9 or newer (`python3 --version`)
+- Python 3.10 or newer (`python3 --version`)
 - The ESP32 connected via USB
 
 ---
@@ -36,13 +36,14 @@ The script performs every step automatically:
 
 ### Offline installation (no internet on the RPi)
 
-Download the wheels on a machine that has internet access:
+Download the wheels on a machine that has internet access. Ensure you specify the correct Python version for your Raspberry Pi:
 
 ```bash
+# Example: For Raspberry Pi running Python 3.12
 pip download \
   --dest ./wheels \
   --platform linux_aarch64 \
-  --python-version 313 \
+  --python-version 312 \
   --only-binary=:all: \
   fastapi uvicorn aiosqlite pyserial httpx
 ```
@@ -52,20 +53,13 @@ Copy the wheels to the RPi and install:
 ```bash
 scp wheels/*.whl pi@<rpi-ip>:~/gps-pkgs/
 ssh pi@<rpi-ip>
+sudo mkdir -p /opt/gps-reference
+sudo python3 -m venv /opt/gps-reference/venv
 sudo /opt/gps-reference/venv/bin/pip install \
   --no-index --find-links ~/gps-pkgs ~/gps-pkgs/*.whl
 ```
 
-Then install only the non-Python parts of setup:
-
-```bash
-# On the RPi (as root)
-sudo cp ~/gps-reference/service/gps-reference.service /etc/systemd/system/
-sudo systemctl edit gps-reference
-# Add User=<your-user> and Group=<your-user> under [Service].
-sudo systemctl daemon-reload
-sudo systemctl enable --now gps-reference
-```
+Then install the application files and configure the service as described in the [Install](#install) section.
 
 ---
 
@@ -145,7 +139,7 @@ journalctl -u gps-reference -n 100        # last 100 lines
 
 ```bash
 cd ~/gps-reference
-mise run deploy:uninstall
+sudo bash tools/install-rpi-service.sh --uninstall
 ```
 
 This stops and removes the service and deletes `/opt/gps-reference/`. The
@@ -163,7 +157,7 @@ scp service/*.py service/requirements.txt service/gps-reference.service \
 
 # On the RPi
 cd ~/gps-reference
-./tools/deploy-rpi-service.sh
+sudo bash tools/install-rpi-service.sh
 ```
 
 The installer refreshes the application files, Python dependencies, systemd

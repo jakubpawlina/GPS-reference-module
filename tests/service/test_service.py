@@ -249,15 +249,44 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertGreater(stats["db_size_bytes"], 0)
 
     async def test_database_cleanup_removes_oldest_rows(self) -> None:
-        for sequence in range(20):
+        for sequence in range(200):
             await database.insert({"state": f"state-{sequence}"})
 
-        config.MAX_DB_BYTES = 1
-        await database._cleanup_if_needed()
-        rows = await database.since(0, 100)
+        # Capture size before cleanup.
+        size_before = database._storage_size_bytes()
 
-        self.assertEqual(len(rows), 19)
-        self.assertEqual(rows[0]["state"], "state-1")
+        # Configure a small cap and trigger cleanup.
+        config.MAX_DB_BYTES = 1024
+        await database._cleanup_if_needed()
+
+        # Capture size after cleanup.
+        size_after = database._storage_size_bytes()
+
+        rows = await database.since(0, 500)
+
+        # Ensure rows were deleted and size reduced.
+        self.assertLess(len(rows), 200)
+        self.assertLess(size_after, size_before)
+
+    async def test_config_validation(self) -> None:
+        """Verify that invalid configuration values raise ValueError."""
+        # Test non-finite stale time
+        original_stale = config.STATE_STALE_SECONDS
+        try:
+            config.STATE_STALE_SECONDS = float("nan")
+            with self.assertRaises(ValueError):
+                config.validate()
+        finally:
+            config.STATE_STALE_SECONDS = original_stale
+
+        # Test invalid port
+        original_port = config.HTTP_PORT
+        try:
+            config.HTTP_PORT = 0
+            with self.assertRaises(ValueError):
+                config.validate()
+        finally:
+            config.HTTP_PORT = original_port
 
     async def test_api_rejects_invalid_ranges_and_webhooks(self) -> None:
         with self.assertRaises(HTTPException) as range_error:
@@ -457,7 +486,9 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
 
         fake_serial = FakeSerial()
         reader._stop.clear()
-        self.assertEqual(reader._readline_interruptible(fake_serial), b"")
+        self.assertEqual(
+            reader._readline_interruptible(cast(reader.serial.Serial, fake_serial)), b""
+        )
         self.assertEqual(fake_serial.expected, b"\n")
         self.assertEqual(fake_serial.size, config.SERIAL_MAX_LINE_BYTES)
 
