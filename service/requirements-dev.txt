@@ -1,2 +1,2 @@
 -r requirements.txt
-pyright==1.1.408
+pyright==1.1.410
