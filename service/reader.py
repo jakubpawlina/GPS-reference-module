@@ -41,18 +41,32 @@ _task: asyncio.Task | None    = None
 
 async def start() -> None:
     global _task
+    if _task is not None and not _task.done():
+        return
+
     _stop.clear()
     _task = asyncio.create_task(_run(), name="serial-reader")
 
 
-async def stop() -> None:
+def request_stop() -> None:
+    """Signal the blocking serial loop to finish at its next timeout."""
     _stop.set()
-    if _task is not None and not _task.done():
-        _task.cancel()
+
+
+async def stop() -> None:
+    global _task
+    request_stop()
+    task = _task
+    if task is not None and not task.done():
         try:
-            await asyncio.wait_for(asyncio.shield(_task), timeout=3.0)
-        except (asyncio.CancelledError, asyncio.TimeoutError):
-            pass
+            await asyncio.wait_for(asyncio.shield(task), timeout=3.0)
+        except asyncio.TimeoutError:
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+    _task = None
 
 
 # ── Internal ───────────────────────────────────────────────────────────────────
@@ -86,10 +100,10 @@ async def _run() -> None:
             if _stop.is_set():
                 break
             log.warning("Serial fault (%s), retry in 5 s …", exc)
-            try:
-                await asyncio.sleep(5)
-            except asyncio.CancelledError:
-                raise
+            for _ in range(50):
+                if _stop.is_set():
+                    break
+                await asyncio.sleep(0.1)
 
 
 async def _loop() -> None:

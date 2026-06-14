@@ -67,6 +67,7 @@ receiver, SSD1306 OLED, and status LEDs.
 | Environment | Requirement | When it is needed |
 |---|---|---|
 | Developer machine | Git, `mise`, Bash, standard Unix tools | All development workflows |
+| Service tests | Python virtual environments and package installer | `mise run service:bootstrap` |
 | Simulation | Docker Engine | Building the custom GPS WebAssembly component |
 | Simulation | VS Code and Wokwi extension | Launching the local simulator |
 | Firmware tests | C++ compiler (`g++`) | `mise run test:unit` |
@@ -91,6 +92,9 @@ sudo apt install g++ doxygen
 - ESP32 Arduino core `esp32:esp32`
 - Adafruit SSD1306
 - Adafruit GFX Library
+
+`mise run service:bootstrap` creates the ignored `.venv/` environment and
+installs the Raspberry Pi service dependencies used by `test:service`.
 
 `mise run simulation:build` downloads the official
 `wokwi/builder-clang-wasm` image when required.
@@ -124,6 +128,7 @@ git clone https://github.com/jakubpawlina/GPS-reference-module.git
 cd GPS-reference-module
 mise install
 mise run firmware:bootstrap
+mise run service:bootstrap
 ```
 
 #### 2. Run the simulation
@@ -300,10 +305,11 @@ Recommended flow:
 
 | Stage | Command |
 |---|---|
-| First setup | `mise install && mise run firmware:bootstrap` |
+| First setup | `mise install && mise run firmware:bootstrap && mise run service:bootstrap` |
 | Fast feedback | `mise run test:unit` |
 | Runtime or hardware-facing changes | `mise run test:integration` |
 | Wokwi changes | `mise run test:simulation` |
+| Raspberry Pi service changes | `mise run test:service` |
 | Before committing | `mise run test:all` |
 | Before opening a pull request | `mise run verify` |
 | Interactive simulator | `mise run simulation:build`, then start Wokwi in VS Code |
@@ -317,6 +323,7 @@ Task reference:
 | `mise run test:unit` | Test pure firmware logic |
 | `mise run test:integration` | Test the complete firmware runtime with simulated peripherals |
 | `mise run test:simulation` | Test Wokwi assets, generation, wiring, and GPS chip logic |
+| `mise run test:service` | Test service storage, API validation, and lifecycle behavior |
 | `mise run test:all` | Run every host-side test layer |
 | `mise run verify` | Run all tests and build the ESP32 and Wokwi projects |
 | `mise run firmware:compile` | Compile firmware for ESP32 |
@@ -389,7 +396,8 @@ gps-reference-module/
 ├── tests/
 │   ├── firmware/                  Pure firmware unit tests
 │   ├── integration/               Runtime and simulated-peripheral tests
-│   └── simulation/                Wokwi project and custom-chip tests
+│   ├── simulation/                Wokwi project and custom-chip tests
+│   └── service/                   Raspberry Pi service tests
 ├── tools/                         Build, simulation, and deployment scripts
 ├── docs/                          Technical documentation
 ├── mise.toml                      Tool versions and task definitions

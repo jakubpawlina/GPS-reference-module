@@ -80,7 +80,7 @@ mise run docs:serve
 ## Configuration constants
 
 All tunable values are centralized in
-[`firmware_config.h`](/home/jakub/wsei/GPS-reference-module/firmware/gps_reference_module/src/firmware_config.h):
+[`firmware_settings.h`](../firmware/gps_reference_module/src/firmware_settings.h):
 
 | Namespace | Constant | Default | Description |
 |-----------|----------|---------|-------------|
@@ -212,23 +212,23 @@ AGE   : <1s
 
 The firmware is now split by responsibility:
 
-- [`gps_reference_module.ino`](/home/jakub/wsei/GPS-reference-module/firmware/gps_reference_module/gps_reference_module.ino)
+- [`gps_reference_module.ino`](../firmware/gps_reference_module/gps_reference_module.ino)
   Arduino entrypoint only
-- [`src/firmware_runtime.cpp`](/home/jakub/wsei/GPS-reference-module/firmware/gps_reference_module/src/firmware_runtime.cpp)
+- [`src/firmware_runtime.cpp`](../firmware/gps_reference_module/src/firmware_runtime.cpp)
   runtime orchestration
-- [`src/firmware_settings.h`](/home/jakub/wsei/GPS-reference-module/firmware/gps_reference_module/src/firmware_settings.h)
+- [`src/firmware_settings.h`](../firmware/gps_reference_module/src/firmware_settings.h)
   centralized settings, pins, and timing values
-- [`src/gps_processing.cpp`](/home/jakub/wsei/GPS-reference-module/firmware/gps_reference_module/src/gps_processing.cpp)
+- [`src/gps_processing.cpp`](../firmware/gps_reference_module/src/gps_processing.cpp)
   pure parsing and GPS state logic
-- [`src/nmea_stream_framer.cpp`](/home/jakub/wsei/GPS-reference-module/firmware/gps_reference_module/src/nmea_stream_framer.cpp)
+- [`src/nmea_stream_framer.cpp`](../firmware/gps_reference_module/src/nmea_stream_framer.cpp)
   serial sentence framing
-- [`src/status_presentation.cpp`](/home/jakub/wsei/GPS-reference-module/firmware/gps_reference_module/src/status_presentation.cpp)
+- [`src/status_presentation.cpp`](../firmware/gps_reference_module/src/status_presentation.cpp)
   display and LED view-model logic
-- [`src/oled_display.cpp`](/home/jakub/wsei/GPS-reference-module/firmware/gps_reference_module/src/oled_display.cpp)
+- [`src/oled_display.cpp`](../firmware/gps_reference_module/src/oled_display.cpp)
   OLED hardware rendering
-- [`src/status_led_controller.cpp`](/home/jakub/wsei/GPS-reference-module/firmware/gps_reference_module/src/status_led_controller.cpp)
+- [`src/status_led_controller.cpp`](../firmware/gps_reference_module/src/status_led_controller.cpp)
   LED hardware control
-- [`src/serial_json_reporter.cpp`](/home/jakub/wsei/GPS-reference-module/firmware/gps_reference_module/src/serial_json_reporter.cpp)
+- [`src/serial_json_reporter.cpp`](../firmware/gps_reference_module/src/serial_json_reporter.cpp)
   USB JSON output
 
 The split is intentional:

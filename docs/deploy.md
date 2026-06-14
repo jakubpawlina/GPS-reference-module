@@ -14,12 +14,13 @@ Copy the service files and install helper to the Raspberry Pi and run the
 install script as root:
 
 ```bash
-# From the dev machine
+# From the development machine
+ssh pi@<rpi-ip> 'mkdir -p ~/gps-reference'
 scp -r service tools pi@<rpi-ip>:~/gps-reference/
 
 # On the Raspberry Pi
 cd ~/gps-reference
-mise run deploy:install
+./tools/deploy-rpi-service.sh
 ```
 
 The script performs every step automatically:
@@ -43,7 +44,7 @@ pip download \
   --platform linux_aarch64 \
   --python-version 313 \
   --only-binary=:all: \
-  fastapi uvicorn aiosqlite pyserial pyserial-asyncio httpx
+  fastapi uvicorn aiosqlite pyserial httpx
 ```
 
 Copy the wheels to the RPi and install:
@@ -59,8 +60,9 @@ Then install only the non-Python parts of setup:
 
 ```bash
 # On the RPi (as root)
-sudo cp ~/gps-reference/gps-reference.service /etc/systemd/system/
-sudo sed -i 's/User=pi/User=<your-user>/' /etc/systemd/system/gps-reference.service
+sudo cp ~/gps-reference/service/gps-reference.service /etc/systemd/system/
+sudo systemctl edit gps-reference
+# Add User=<your-user> and Group=<your-user> under [Service].
 sudo systemctl daemon-reload
 sudo systemctl enable --now gps-reference
 ```
@@ -83,7 +85,7 @@ All settings are environment variables. Edit the systemd override file:
 | `GPS_MAX_DB_BYTES` | `4294967296` | Storage cap in bytes (default 4 GB) |
 | `GPS_HTTP_HOST` | `0.0.0.0` | Listen address for the HTTP server |
 | `GPS_HTTP_PORT` | `8000` | Listen port |
-| `GPS_CLOUD_WEBHOOK` | _(empty)_ | URL for `POST /api/upload` if no `webhook_url` is provided |
+| `GPS_CLOUD_WEBHOOK` | _(empty)_ | Administrator-controlled HTTP(S) destination for `POST /api/upload` |
 
 After editing, reload and restart:
 
@@ -155,9 +157,9 @@ sudo systemctl restart gps-reference
 
 ### Service does not start - `status=217/USER`
 
-The `User=` in the service file names a user that does not exist.
-Edit `/etc/systemd/system/gps-reference.service` and change `User=pi`
-to your actual username, then `sudo systemctl daemon-reload && sudo systemctl restart gps-reference`.
+The selected deployment user does not exist. Create it or rerun the installer
+with `GPS_APP_USER=<existing-user>`. The installer writes the selected account
+to the systemd override.
 
 ### `/api/status` returns 503
 
@@ -177,10 +179,9 @@ sudo modprobe cp210x
 
 ### Serial connected but no data (reader blocks)
 
-`pyserial-asyncio` has a known incompatibility with Python 3.13 where
-`readline()` blocks indefinitely. The `reader.py` in this repository uses
-`asyncio.to_thread(ser.readline)` instead, which avoids this issue.
-Verify the deployed file matches `service/reader.py`.
+The service intentionally uses pyserial through `asyncio.to_thread()` with a
+one-second read timeout. Verify the deployed `reader.py` matches this
+repository and that `GPS_BAUD_RATE` matches the firmware.
 
 ### Display shows nothing
 

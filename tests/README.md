@@ -16,6 +16,7 @@ language.
 | Unit | `mise run test:unit` | Pure NMEA parsing, state evaluation, framing, and presentation | None |
 | Integration | `mise run test:integration` | Real firmware runtime with host-side UART, I2C, OLED, GPIO, serial, and clock fakes | None |
 | Simulation | `mise run test:simulation` | Wokwi project assets, generator behavior, wiring contract, and custom GPS chip output | None |
+| Service | `mise run test:service` | SQLite persistence and cleanup, API validation, and serial-reader lifecycle | None |
 | All tests | `mise run test:all` | Every host-side test layer | None |
 | Full verification | `mise run verify` | All tests plus ESP32 and Wokwi WebAssembly builds | Docker for the custom chip build |
 

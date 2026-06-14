@@ -1,5 +1,6 @@
 #include "gps_processing.h"
 
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -49,7 +50,7 @@ bool verifyNmeaChecksum(const char *sentence, bool requireChecksum) {
     return !requireChecksum;
   }
 
-  if (star[1] == '\0' || star[2] == '\0') {
+  if (star[1] == '\0' || star[2] == '\0' || star[3] != '\0') {
     return false;
   }
 
@@ -86,14 +87,42 @@ static int splitCsv(char *text, char *fields[], int maxFields) {
   return count;
 }
 
-static double parseCoordinate(const char *coordinate, const char *hemisphere) {
+static bool parseCoordinate(
+  const char *coordinate,
+  const char *hemisphere,
+  bool latitude,
+  double &result
+) {
   if (!coordinate || !coordinate[0] || !hemisphere || !hemisphere[0]) {
-    return 0.0;
+    return false;
   }
 
-  const double raw = atof(coordinate);
+  if (hemisphere[1] != '\0') {
+    return false;
+  }
+
+  const bool validHemisphere = latitude
+    ? hemisphere[0] == 'N' || hemisphere[0] == 'S'
+    : hemisphere[0] == 'E' || hemisphere[0] == 'W';
+  if (!validHemisphere) {
+    return false;
+  }
+
+  char *end = nullptr;
+  const double raw = strtod(coordinate, &end);
+  if (end == coordinate || *end != '\0' || !isfinite(raw) || raw < 0.0) {
+    return false;
+  }
+
   const int degrees = static_cast<int>(raw / 100.0);
   const double minutes = raw - static_cast<double>(degrees) * 100.0;
+  const int maximumDegrees = latitude ? 90 : 180;
+  if (minutes < 0.0 || minutes >= 60.0 || degrees > maximumDegrees) {
+    return false;
+  }
+  if (degrees == maximumDegrees && minutes > 0.0) {
+    return false;
+  }
 
   double decimalDegrees = static_cast<double>(degrees) + minutes / 60.0;
 
@@ -101,7 +130,8 @@ static double parseCoordinate(const char *coordinate, const char *hemisphere) {
     decimalDegrees = -decimalDegrees;
   }
 
-  return decimalDegrees;
+  result = decimalDegrees;
+  return true;
 }
 
 static void copyTextField(char *destination, size_t destinationSize, const char *source) {
@@ -221,9 +251,15 @@ static void parseGga(GpsData &gps, char *fields[], int count, uint32_t nowMs) {
     fields[4][0] &&
     fields[5][0]
   ) {
-    gps.latitude = parseCoordinate(fields[2], fields[3]);
-    gps.longitude = parseCoordinate(fields[4], fields[5]);
-    gps.locationValid = true;
+    double latitude = 0.0;
+    double longitude = 0.0;
+    gps.locationValid =
+      parseCoordinate(fields[2], fields[3], true, latitude) &&
+      parseCoordinate(fields[4], fields[5], false, longitude);
+    if (gps.locationValid) {
+      gps.latitude = latitude;
+      gps.longitude = longitude;
+    }
   } else {
     gps.locationValid = false;
   }
@@ -287,9 +323,15 @@ static void parseRmc(GpsData &gps, char *fields[], int count, uint32_t nowMs) {
     gps.hasFix = true;
 
     if (fields[3][0] && fields[4][0] && fields[5][0] && fields[6][0]) {
-      gps.latitude = parseCoordinate(fields[3], fields[4]);
-      gps.longitude = parseCoordinate(fields[5], fields[6]);
-      gps.locationValid = true;
+      double latitude = 0.0;
+      double longitude = 0.0;
+      gps.locationValid =
+        parseCoordinate(fields[3], fields[4], true, latitude) &&
+        parseCoordinate(fields[5], fields[6], false, longitude);
+      if (gps.locationValid) {
+        gps.latitude = latitude;
+        gps.longitude = longitude;
+      }
     } else {
       gps.locationValid = false;
     }
@@ -328,6 +370,9 @@ void processNmeaSentence(GpsData &gps, const char *sentence, uint32_t nowMs, boo
   }
 
   char work[144];
+  if (strlen(sentence) >= sizeof(work)) {
+    return;
+  }
   strncpy(work, sentence, sizeof(work) - 1);
   work[sizeof(work) - 1] = '\0';
 

@@ -110,6 +110,8 @@ tasklog_step() {
   printf '\n--- failure output: %s ---\n' "$label" >&2
   cat "$log_file" >&2
   printf '%s\n' '--- end failure output ---' >&2
+  rm -rf "$TASKLOG_DIR"
+  TASKLOG_DIR=""
   return "$status"
 }
 

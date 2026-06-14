@@ -103,17 +103,27 @@ async def insert(record: dict) -> int:
         row_id = cur.lastrowid
         await db.commit()
 
+    if row_id is None:
+        raise RuntimeError("SQLite did not return an id for the inserted position")
+
     await _cleanup_if_needed()
     return row_id
 
 
-async def _cleanup_if_needed() -> None:
-    """Delete the oldest CLEANUP_FRAC rows when the DB file exceeds 95 % of the cap."""
-    try:
-        size = os.path.getsize(config.DB_PATH)
-    except FileNotFoundError:
-        return
+def _storage_size_bytes() -> int:
+    """Return the SQLite database size including WAL and shared-memory files."""
+    total = 0
+    for suffix in ("", "-wal", "-shm"):
+        try:
+            total += os.path.getsize(f"{config.DB_PATH}{suffix}")
+        except FileNotFoundError:
+            pass
+    return total
 
+
+async def _cleanup_if_needed() -> None:
+    """Delete old rows and reclaim disk space when storage approaches the cap."""
+    size = _storage_size_bytes()
     if size < config.MAX_DB_BYTES * 0.95:
         return
 
@@ -121,15 +131,27 @@ async def _cleanup_if_needed() -> None:
         async with db.execute("SELECT COUNT(*) FROM positions") as cur:
             (total,) = await cur.fetchone()
 
+        if total == 0:
+            return
+
         to_delete = max(1, int(total * config.CLEANUP_FRAC))
         await db.execute(
             "DELETE FROM positions WHERE id IN "
             "(SELECT id FROM positions ORDER BY id ASC LIMIT ?)",
             (to_delete,),
         )
-        await db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         await db.commit()
-        log.info("Storage cleanup: removed %d oldest rows (was %.1f GB)", to_delete, size / 1024**3)
+        async with db.execute("PRAGMA wal_checkpoint(TRUNCATE)") as cur:
+            await cur.fetchone()
+        await db.execute("VACUUM")
+
+    new_size = _storage_size_bytes()
+    log.info(
+        "Storage cleanup: removed %d oldest rows (%.1f MiB -> %.1f MiB)",
+        to_delete,
+        size / 1024**2,
+        new_size / 1024**2,
+    )
 
 
 # ── Queries ────────────────────────────────────────────────────────────────────
@@ -166,10 +188,7 @@ async def time_range(ts_from: float, ts_to: float, limit: int = 10_000) -> list[
 
 
 async def stats() -> dict:
-    try:
-        size = os.path.getsize(config.DB_PATH)
-    except FileNotFoundError:
-        size = 0
+    size = _storage_size_bytes()
 
     async with aiosqlite.connect(config.DB_PATH) as db:
         async with db.execute(

@@ -78,7 +78,6 @@ Use cases:
 │  All state → USB JSON stream    │                         │                         │
 └─────────────────────────────────┘                         │  reader.py              │
                                                             │    pyserial thread      │
-                                                            │    → asyncio queue      │
                                                             │    → database.insert()  │
                                                             │                         │
                                                             │  SQLite (WAL)           │
@@ -168,7 +167,7 @@ before calling `begin()` to distinguish "no display" from "malloc failed".
 ### Reader (`reader.py`)
 
 The serial reader runs entirely in a thread pool (`asyncio.to_thread()`) to
-avoid blocking the event loop. Two known issues are addressed:
+avoid blocking the event loop. The implementation addresses four constraints:
 
 1. **pyserial-asyncio 0.6 compatibility** - does not feed data to
    `asyncio.StreamReader` on Python 3.13. Plain pyserial is used instead.
@@ -196,8 +195,8 @@ immediately on SIGTERM/SIGINT, before uvicorn begins waiting for connections.
 
 SQLite in WAL mode with `PRAGMA synchronous = NORMAL`. One record per second
 occupies approximately 400-600 bytes; 4 GB supports ~97 days of continuous
-recording. When the file reaches 95 % of the cap, the oldest 5 % of rows are
-deleted automatically.
+recording. When the database and WAL files reach 95 % of the cap, the oldest
+5 % of rows are deleted and SQLite reclaims the freed pages.
 
 ### API (`api.py`)
 

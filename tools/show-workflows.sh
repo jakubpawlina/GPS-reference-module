@@ -7,11 +7,13 @@ GPS Reference Module workflows
 First setup:
   mise install
   mise run firmware:bootstrap
+  mise run service:bootstrap
 
 During development:
   mise run test:unit          Fast firmware logic feedback
   mise run test:integration   Firmware runtime with simulated peripherals
   mise run test:simulation    Wokwi project and custom GPS chip contracts
+  mise run test:service       Raspberry Pi storage, API, and lifecycle behavior
 
 Before committing:
   mise run test:all           All host-side tests; no Docker required

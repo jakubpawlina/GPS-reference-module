@@ -22,7 +22,8 @@ simulation/
     └── src/               # Complete copied firmware implementation
 ```
 
-The project generator lives in [`tools/generate-wokwi-project.py`](/home/jakub/wsei/GPS-reference-module/tools/generate-wokwi-project.py).
+The project generator lives in
+[`tools/generate-wokwi-project.py`](../tools/generate-wokwi-project.py).
 It discovers the single top-level `.ino` entrypoint and recursively copies the
 firmware and asset directories while excluding files ignored by Git. Alternative
 projects can be supplied with `--firmware-dir`, `--assets-dir`, and

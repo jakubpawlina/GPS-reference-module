@@ -160,6 +160,7 @@ int main(int argc, char **argv) {
   require(Wire.clock() == 100000, "OLED I2C clock mismatch");
 
   require(Serial.output().find("\"type\":\"startup\"") != std::string::npos, "startup JSON missing");
+  require(Serial.output().find("\"oledAddress\":60") != std::string::npos, "OLED address JSON should be decimal");
   require(Serial.output().find("\"displayReady\":true") != std::string::npos, "display readiness missing");
 
   gps->inject(scenario.nmea);

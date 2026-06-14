@@ -18,6 +18,10 @@ run = "./tools/setup-firmware-toolchain.sh"
 description = "Build only the ESP32 firmware"
 run = "./tools/run-firmware-checks.sh compile"
 
+[tasks."service:bootstrap"]
+description = "First setup: create the service test environment and install Python dependencies"
+run = "./tools/setup-service-environment.sh"
+
 [tasks."docs:generate"]
 description = "Docs: generate firmware API documentation"
 run = "./tools/run-firmware-checks.sh docs"
@@ -53,6 +57,10 @@ run = "./tools/run-tests.sh integration"
 [tasks."test:simulation"]
 description = "Develop: test Wokwi assets, generator, and GPS chip"
 run = "./tools/run-tests.sh simulation"
+
+[tasks."test:service"]
+description = "Develop: test Raspberry Pi storage, API validation, and lifecycle behavior"
+run = "./tools/run-tests.sh service"
 
 [tasks."test:all"]
 description = "Before commit: run all host-side tests without Docker"

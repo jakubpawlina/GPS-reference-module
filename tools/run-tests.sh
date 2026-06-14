@@ -12,6 +12,7 @@ trap 'rm -rf "$RUN_DIR"' EXIT
 UNIT_TEST_BIN="$RUN_DIR/test_firmware_unit"
 INTEGRATION_TEST_BIN="$RUN_DIR/test_firmware_integration"
 CHIP_TEST_BIN="$RUN_DIR/test_wokwi_gps_chip"
+SERVICE_PYTHON="$ROOT/.venv/bin/python"
 
 readonly C_WARNINGS=(-Wall -Wextra -Werror -pedantic)
 readonly CXX_SANITIZERS=(-fsanitize=address,undefined -fno-omit-frame-pointer)
@@ -73,6 +74,7 @@ Suites:
   unit          Test pure firmware parsing, state, framing, and presentation
   integration   Test the complete firmware runtime with simulated peripherals
   simulation    Test Wokwi assets, generation, and custom GPS chip behavior
+  service       Test Raspberry Pi storage, API, and lifecycle behavior
   all           Run every host-side test suite
 EOF
 }
@@ -340,11 +342,25 @@ run_python_simulation_tests() {
   python3 "$ROOT/tests/simulation/test_wokwi_generator.py"
 }
 
+run_service_tests() {
+  if [[ ! -x "$SERVICE_PYTHON" ]]; then
+    echo "Missing service environment: $SERVICE_PYTHON" >&2
+    echo "Run 'mise run service:bootstrap' first." >&2
+    exit 1
+  fi
+
+  begin_suite "Raspberry Pi service tests"
+  run_listed_step PASS 4 "Execute async service cases" \
+    "$SERVICE_PYTHON" "$ROOT/tests/service/test_service.py"
+  end_suite
+}
+
 run_all_tests() {
   ALL_STARTED_MS="$(now_ms)"
   run_unit_tests
   run_integration_tests
   run_simulation_tests
+  run_service_tests
 
   local finished_ms
   local duration_ms
@@ -368,6 +384,7 @@ main() {
     unit) run_unit_tests ;;
     integration) run_integration_tests ;;
     simulation) run_simulation_tests ;;
+    service) run_service_tests ;;
     all) run_all_tests ;;
     *)
       usage

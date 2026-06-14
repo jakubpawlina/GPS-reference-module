@@ -101,7 +101,7 @@ info "Dependencies installed"
 # ── Import smoke test ──────────────────────────────────────────────────────────
 step "Running import smoke test…"
 "$INSTALL_DIR/venv/bin/python" - <<'PYEOF'
-import fastapi, uvicorn, aiosqlite, serial, serial_asyncio, httpx
+import fastapi, uvicorn, aiosqlite, serial, httpx
 print("  fastapi", fastapi.__version__)
 print("  uvicorn", uvicorn.__version__)
 print("  aiosqlite", aiosqlite.__version__)
@@ -126,6 +126,8 @@ OVERRIDE_DIR="/etc/systemd/system/${SERVICE}.service.d"
 mkdir -p "$OVERRIDE_DIR"
 cat > "$OVERRIDE_DIR/local.conf" <<EOF
 [Service]
+User=${APP_USER}
+Group=${APP_USER}
 Environment=GPS_SERIAL_PORT=${SERIAL_PORT}
 Environment=GPS_HTTP_PORT=${HTTP_PORT}
 Environment=GPS_MAX_DB_BYTES=${MAX_DB_BYTES}

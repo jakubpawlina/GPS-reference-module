@@ -88,7 +88,7 @@ void reportStartupJson(bool displayReady, uint8_t oledAddress) {
 
   Serial.print(F(",\"oledAddress\":"));
   if (oledAddress != 0) {
-    Serial.print(oledAddress, HEX);
+    Serial.print(static_cast<unsigned int>(oledAddress));
   } else {
     Serial.print(F("null"));
   }

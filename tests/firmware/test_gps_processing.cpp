@@ -62,6 +62,13 @@ void testChecksumValidation() {
     !GpsProcessing::verifyNmeaChecksum("$GPGGA,123519*ZZ", true),
     "non-hex checksum should fail"
   );
+  require(
+    !GpsProcessing::verifyNmeaChecksum(
+      "$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*4700",
+      true
+    ),
+    "checksum with trailing data should fail"
+  );
 }
 
 /**
@@ -161,6 +168,22 @@ void testCoordinatesAndInvalidFixes() {
   );
   require(!gps.hasFix, "void RMC should clear fix");
   require(!gps.locationValid, "void RMC should clear location");
+
+  GpsProcessing::processNmeaSentence(
+    gps,
+    "$GNGGA,123522,9160.000,N,18100.000,E,1,09,0.7,25.5,M,30.0,M,,",
+    400,
+    false
+  );
+  require(!gps.locationValid, "out-of-range coordinates should be rejected");
+
+  GpsProcessing::processNmeaSentence(
+    gps,
+    "$GNGGA,123523,3351.1200,E,15112.8400,N,1,09,0.7,25.5,M,30.0,M,,",
+    500,
+    false
+  );
+  require(!gps.locationValid, "latitude and longitude hemispheres should not be interchangeable");
 }
 
 /**

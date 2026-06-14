@@ -109,6 +109,7 @@ def validate_assets(assets_dir: Path, firmware_dir: Path) -> None:
         "neo-m8n.chip.json",
         "wokwi-api.h",
         "wokwi.toml",
+        "TESTING.md",
         ".vscode/extensions.json",
         ".vscode/tasks.json",
     )
@@ -123,6 +124,7 @@ def validate_assets(assets_dir: Path, firmware_dir: Path) -> None:
     controls = chip.get("controls")
     require(isinstance(controls, list) and len(controls) == 1, "GPS chip must expose one scenario control")
     scenario = controls[0]
+    require(isinstance(scenario, dict), "GPS chip scenario control must be an object")
     require(scenario.get("id") == "scenario", "GPS chip scenario control id mismatch")
     require((scenario.get("min"), scenario.get("max"), scenario.get("step")) == (0, 5, 1), "scenario range must be 0..5")
 
@@ -135,18 +137,28 @@ def validate_assets(assets_dir: Path, firmware_dir: Path) -> None:
     require("Adafruit SSD1306" in libraries, "Adafruit SSD1306 dependency is missing")
 
     extensions = load_json(assets_dir / ".vscode" / "extensions.json")
+    require(isinstance(extensions, dict), "extensions.json must contain an object")
     require("wokwi.wokwi-vscode" in extensions.get("recommendations", []), "Wokwi VS Code extension is not recommended")
 
     tasks = load_json(assets_dir / ".vscode" / "tasks.json")
+    require(isinstance(tasks, dict), "tasks.json must contain an object")
     task_items = tasks.get("tasks", [])
-    require(any(task.get("label") == "Wokwi: Build Simulation" for task in task_items), "VS Code build task is missing")
+    require(isinstance(task_items, list), "tasks.json tasks must contain a list")
+    require(
+        any(
+            isinstance(task, dict) and task.get("label") == "Wokwi: Build Simulation"
+            for task in task_items
+        ),
+        "VS Code build task is missing",
+    )
 
     config = load_toml(assets_dir / "wokwi.toml")
     require(config.get("wokwi", {}).get("version") == 1, "wokwi.toml version must be 1")
     require(config.get("wokwi", {}).get("firmware") == "build/firmware.bin", "firmware artifact path mismatch")
     require(config.get("wokwi", {}).get("elf") == "build/firmware.elf", "ELF artifact path mismatch")
     chips = config.get("chip", [])
-    require(len(chips) == 1, "wokwi.toml must define one custom chip")
+    require(isinstance(chips, list) and len(chips) == 1, "wokwi.toml must define one custom chip")
+    require(isinstance(chips[0], dict), "wokwi.toml custom chip must be a table")
     require(chips[0].get("name") == "neo-m8n", "custom chip name mismatch")
     require(chips[0].get("binary") == "neo-m8n.chip.wasm", "custom chip binary path mismatch")
 

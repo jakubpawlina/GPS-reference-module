@@ -175,7 +175,6 @@ Uploads a batch of records to a cloud webhook via HTTP POST.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `webhook_url` | string | no | POST target URL. Falls back to `GPS_CLOUD_WEBHOOK` env var. |
 | `since_cursor` | int | no | Upload only records with id > this value. Default 0. |
 | `limit` | int | no | Max records per batch. Default 10 000, max 50 000. |
 
@@ -206,7 +205,7 @@ Uploads a batch of records to a cloud webhook via HTTP POST.
 ```
 cursor = 0
 loop:
-    POST /api/upload?webhook_url=https://…&since_cursor={cursor}
+    POST /api/upload?since_cursor={cursor}
     cursor = response.next_cursor
 ```
 

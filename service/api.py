@@ -21,9 +21,10 @@ import json
 import time
 from contextlib import asynccontextmanager
 from typing import Optional
+from urllib.parse import urlparse
 
 import httpx
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
@@ -35,10 +36,13 @@ import reader
 # ── Lifespan ───────────────────────────────────────────────────────────────────
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_app: FastAPI):
+    await database.init()
     await reader.start()
-    yield
-    await reader.stop()
+    try:
+        yield
+    finally:
+        await reader.stop()
 
 
 # ── Application ────────────────────────────────────────────────────────────────
@@ -111,8 +115,8 @@ async def get_stats():
 
 @app.get("/api/records/since", summary="Incremental poll (cursor-based)", tags=["Records"])
 async def get_since(
-    cursor: int = Query(0, description="Last record id received. Use 0 on first call; save `next_cursor` for subsequent calls."),
-    limit:  int = Query(1000, le=10_000, description="Maximum records returned (max 10 000)."),
+    cursor: int = Query(0, ge=0, description="Last record id received. Use 0 on first call; save `next_cursor` for subsequent calls."),
+    limit:  int = Query(1000, ge=1, le=10_000, description="Maximum records returned (max 10 000)."),
 ):
     """
     Stateless cursor-based polling. The server holds no session; the cursor is
@@ -135,13 +139,17 @@ async def get_since(
 async def get_range(
     ts_from: float           = Query(...,  description="Start of window, Unix timestamp (seconds)."),
     ts_to:   Optional[float] = Query(None, description="End of window, Unix timestamp. Defaults to now."),
-    limit:   int             = Query(10_000, le=50_000, description="Maximum records returned (max 50 000)."),
+    limit:   int             = Query(10_000, ge=1, le=50_000, description="Maximum records returned (max 50 000)."),
 ):
     """
     Returns all records stored within `[ts_from, ts_to]`, oldest-first.
     If the window exceeds `limit`, only the oldest `limit` rows are returned.
     """
-    rows = await database.time_range(ts_from, ts_to or time.time(), limit)
+    effective_ts_to = time.time() if ts_to is None else ts_to
+    if effective_ts_to < ts_from:
+        raise HTTPException(422, detail="ts_to must be greater than or equal to ts_from")
+
+    rows = await database.time_range(ts_from, effective_ts_to, limit)
     return {"records": rows, "count": len(rows)}
 
 
@@ -149,9 +157,8 @@ async def get_range(
 
 @app.post("/api/upload", summary="Upload records to a cloud webhook", tags=["Cloud"])
 async def upload(
-    webhook_url:  str = Query(None, description="POST target URL. Falls back to GPS_CLOUD_WEBHOOK env var."),
-    since_cursor: int = Query(0,    description="Upload only records with id > this value."),
-    limit:        int = Query(10_000, le=50_000, description="Max records per batch (max 50 000)."),
+    since_cursor: int = Query(0, ge=0, description="Upload only records with id > this value."),
+    limit:        int = Query(10_000, ge=1, le=50_000, description="Max records per batch (max 50 000)."),
 ):
     """
     POSTs `{"source": "gps-reference", "records": [...]}` to the webhook.
@@ -159,9 +166,12 @@ async def upload(
 
     **Response:** `{"uploaded": N, "next_cursor": M, "http_status": 200}`
     """
-    url = webhook_url or config.CLOUD_WEBHOOK
+    url = config.CLOUD_WEBHOOK
     if not url:
-        raise HTTPException(400, detail="No webhook URL - pass ?webhook_url= or set GPS_CLOUD_WEBHOOK")
+        raise HTTPException(400, detail="No webhook URL configured in GPS_CLOUD_WEBHOOK")
+    parsed_url = urlparse(url)
+    if parsed_url.scheme not in {"http", "https"} or not parsed_url.netloc:
+        raise HTTPException(400, detail="Webhook URL must be an absolute HTTP or HTTPS URL")
 
     rows = await database.since(since_cursor, limit)
     if not rows:
@@ -180,16 +190,16 @@ async def upload(
 # ── Meta ───────────────────────────────────────────────────────────────────────
 
 @app.get("/api/endpoints", summary="Machine-readable endpoint catalogue", tags=["Meta"])
-async def endpoints():
+async def endpoints(request: Request):
     """Structured list of all endpoints with descriptions and example URLs."""
-    base = f"http://{config.HTTP_HOST}:{config.HTTP_PORT}"
+    base = str(request.base_url).rstrip("/")
     return JSONResponse({"base_url": base, "endpoints": [
         {"method": "GET",  "path": "/api/status",          "summary": "Current GPS state",                   "example": f"{base}/api/status"},
         {"method": "GET",  "path": "/api/stats",            "summary": "Storage statistics",                  "example": f"{base}/api/stats"},
         {"method": "GET",  "path": "/api/records/since",    "summary": "Incremental poll",                    "example": f"{base}/api/records/since?cursor=0"},
         {"method": "GET",  "path": "/api/records/range",    "summary": "Time-range query",                    "example": f"{base}/api/records/range?ts_from=1748000000"},
         {"method": "GET",  "path": "/api/stream",           "summary": "SSE live stream",                     "example": f"{base}/api/stream"},
-        {"method": "POST", "path": "/api/upload",           "summary": "Upload to cloud webhook",             "example": f"{base}/api/upload?webhook_url=https://example.com/ingest"},
+        {"method": "POST", "path": "/api/upload",           "summary": "Upload to configured cloud webhook",  "example": f"{base}/api/upload"},
         {"method": "GET",  "path": "/api/endpoints",        "summary": "This endpoint catalogue",             "example": f"{base}/api/endpoints"},
         {"method": "GET",  "path": "/",                     "summary": "Live browser dashboard",              "example": f"{base}/"},
         {"method": "GET",  "path": "/docs",                 "summary": "Swagger UI",                          "example": f"{base}/docs"},

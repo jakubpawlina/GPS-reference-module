@@ -14,7 +14,6 @@ import logging
 import uvicorn
 
 import config
-import database
 import reader
 from api import app
 
@@ -26,8 +25,6 @@ log = logging.getLogger("main")
 
 
 async def _main() -> None:
-    await database.init()
-
     cfg = uvicorn.Config(
         app,
         host=config.HTTP_HOST,
@@ -37,12 +34,12 @@ async def _main() -> None:
     )
     server = uvicorn.Server(cfg)
 
-    # Patch uvicorn's signal handler so reader._stop is set the instant
+    # Patch uvicorn's signal handler so the reader is notified the instant
     # SIGTERM/SIGINT arrives, before uvicorn starts waiting for connections.
     _orig = server.handle_exit
 
     def _handle_exit(sig: int, frame: object) -> None:
-        reader._stop.set()
+        reader.request_stop()
         _orig(sig, frame)
 
     server.handle_exit = _handle_exit
