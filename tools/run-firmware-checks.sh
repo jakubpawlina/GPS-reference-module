@@ -26,7 +26,7 @@ run_compile() {
 	require_tool arduino-cli
 	local build_dir
 	build_dir="$(mktemp -d /tmp/gps-reference-arduino-build.XXXXXX)"
-	trap "rm -rf '$build_dir'" EXIT
+	trap "rm -rf \"$build_dir\"" EXIT
 	tasklog_begin "ESP32 firmware build"
 	tasklog_step BUILD "Compile esp32:esp32:esp32 (warnings=all)" \
 		arduino-cli compile \

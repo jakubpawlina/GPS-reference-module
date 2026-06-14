@@ -41,9 +41,9 @@
 
 #include "gps_processing.h"
 
-#include <math.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cmath>
+#include <cstdlib>
+#include <cstring>
 
 #include "firmware_settings.h"
 
@@ -146,7 +146,7 @@ static bool parseCoordinate(const char *coordinate, const char *hemisphere, bool
 
   char *end = nullptr;
   const double raw = strtod(coordinate, &end);
-  if (end == coordinate || *end != '\0' || !isfinite(raw) || raw < 0.0) {
+  if (end == coordinate || *end != '\0' || !std::isfinite(raw) || raw < 0.0) {
     return false;
   }
 
@@ -367,7 +367,7 @@ static void parseRmc(GpsData &gps, char *fields[], int count, uint32_t nowMs) {
 
   if (count > 7 && fields[7][0]) {
     gps.speedKnots = atof(fields[7]);
-    gps.speedKmh = gps.speedKnots * 1.852;
+    gps.speedKmh = gps.speedKnots * GpsConfig::KNOTS_TO_KMH;
     gps.speedValid = true;
   } else {
     gps.speedValid = false;
@@ -415,8 +415,9 @@ void processNmeaSentence(GpsData &gps, const char *sentence, uint32_t nowMs, boo
     *star = '\0';
   }
 
-  char *fields[24];
-  const int fieldCount = splitCsv(payload, fields, 24);
+  constexpr int MAX_NMEA_FIELDS = 24;
+  char *fields[MAX_NMEA_FIELDS];
+  const int fieldCount = splitCsv(payload, fields, MAX_NMEA_FIELDS);
   if (fieldCount == 0 || !fields[0] || !fields[0][0]) {
     return;
   }

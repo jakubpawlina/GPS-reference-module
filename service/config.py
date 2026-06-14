@@ -27,6 +27,11 @@ CLEANUP_FRAC: float = 0.05  # fraction of rows to delete when the cap is approac
 HTTP_HOST: str = os.getenv("GPS_HTTP_HOST", "0.0.0.0")
 HTTP_PORT: int = _int_env("GPS_HTTP_PORT", 8000)
 
+# CORS — comma-separated list of allowed origins, or "*" to allow all
+CORS_ORIGINS: list[str] = [
+    o.strip() for o in os.getenv("GPS_CORS_ORIGINS", "*").split(",") if o.strip()
+]
+
 # Cloud upload - optional POST target for /api/upload
 CLOUD_WEBHOOK: str = os.getenv("GPS_CLOUD_WEBHOOK", "")
 

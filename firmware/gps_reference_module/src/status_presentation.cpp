@@ -1,6 +1,6 @@
 #include "status_presentation.h"
 
-#include <stdio.h>
+#include <cstdio>
 
 namespace StatusPresentation {
 
@@ -47,7 +47,7 @@ void buildDisplayModel(const GpsProcessing::GpsData &gps,
            GpsProcessing::diagnosticStateToDisplay(snapshot.diagnosticState));
   snprintf(model.fix, sizeof(model.fix), "%s", GpsProcessing::fixTypeToDisplay(gps, snapshot));
 
-  if (gps.lastGgaMs != 0) {
+  if (snapshot.freshGga) {
     snprintf(model.sats, sizeof(model.sats), "%02u", static_cast<unsigned int>(gps.satellitesUsed));
   } else {
     snprintf(model.sats, sizeof(model.sats), "---");

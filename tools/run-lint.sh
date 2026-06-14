@@ -8,7 +8,7 @@
 #   ruff check   — Python lint (pyflakes, pycodestyle, isort, pyupgrade)
 #   shfmt -l     — shell syntax check
 
-set -euo pipefail
+set -Eeuo pipefail
 cd "$(dirname "$0")/.."
 
 ERRORS=0

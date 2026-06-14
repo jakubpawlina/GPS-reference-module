@@ -81,6 +81,7 @@ async def init() -> None:
     _db.row_factory = aiosqlite.Row
     await _db.execute("PRAGMA journal_mode = WAL")
     await _db.execute("PRAGMA synchronous = NORMAL")
+    await _db.execute("PRAGMA auto_vacuum = INCREMENTAL")
     await _db.executescript(_DDL)
     await _db.commit()
     log.info("Database ready: %s", config.DB_PATH)
@@ -177,7 +178,9 @@ async def _cleanup_if_needed() -> None:
     await db.commit()
     async with db.execute("PRAGMA wal_checkpoint(TRUNCATE)") as cur:
         await cur.fetchone()
-    await db.execute("VACUUM")
+    # Use incremental_vacuum for bounded-time page reclamation instead of
+    # VACUUM, which rewrites the entire database and blocks all operations.
+    await db.execute("PRAGMA incremental_vacuum")
 
     new_size = _storage_size_bytes()
     log.info(

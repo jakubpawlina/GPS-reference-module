@@ -146,6 +146,8 @@ async def _loop() -> None:
                 log.info("ESP32 firmware %s", msg.get("version", "?"))
             elif msg_type == "error":
                 log.warning("ESP32 error: %s", msg.get("msg"))
+            elif msg_type != "raw_nmea":
+                log.debug("Unknown message type: %s", msg_type)
 
     finally:
         await asyncio.to_thread(ser.close)

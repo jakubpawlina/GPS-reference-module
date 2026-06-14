@@ -4,11 +4,15 @@
 set -euo pipefail
 
 # ── Colours ────────────────────────────────────────────────────────────────────
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-NC='\033[0m'
+if [[ -z "${NO_COLOR:-}" ]] && { [[ "${FORCE_COLOR:-0}" == "1" ]] || [[ -t 1 && "${TERM:-dumb}" != "dumb" ]]; }; then
+	RED='\033[0;31m'
+	GREEN='\033[0;32m'
+	YELLOW='\033[1;33m'
+	CYAN='\033[0;36m'
+	NC='\033[0m'
+else
+	RED='' GREEN='' YELLOW='' CYAN='' NC=''
+fi
 info() { echo -e "${GREEN}[INFO]${NC}  $*"; }
 warn() { echo -e "${YELLOW}[WARN]${NC}  $*"; }
 step() { echo -e "${CYAN}[....] $*${NC}"; }

@@ -8,6 +8,9 @@ namespace StatusLedController {
 
 namespace {
 
+// pinMode() is called on every tick (not just at init) because LED_DATA and
+// LED_ERROR must float via INPUT_PULLDOWN when off to avoid backfeeding
+// current through shared GPIO lines on the deployed wiring.
 void setLedState(uint8_t pin, bool on) {
   if (on) {
     pinMode(pin, OUTPUT);

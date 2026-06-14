@@ -59,7 +59,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=config.CORS_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -99,7 +99,7 @@ async def stream():
         while True:
             state = reader.current_state
             now = asyncio.get_running_loop().time()
-            if state and state != last:
+            if state and state is not last:
                 last = state
                 yield f"data: {json.dumps(state)}\n\n"
                 last_keepalive = now
@@ -153,7 +153,7 @@ async def get_since(
 
 @app.get("/api/records/range", summary="Time-range query", tags=["Records"])
 async def get_range(
-    ts_from: float = Query(..., description="Start of window, Unix timestamp (seconds)."),
+    ts_from: float = Query(..., ge=0, description="Start of window, Unix timestamp (seconds)."),
     ts_to: float | None = Query(
         None, description="End of window, Unix timestamp. Defaults to now."
     ),

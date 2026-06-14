@@ -5,8 +5,8 @@
 
 /** @brief Immutable build identity for the firmware image. */
 namespace Firmware {
-constexpr const char *NAME = "gps-reference-module";
-constexpr const char *VERSION = "1.2.0";
+constexpr const char NAME[] = "gps-reference-module";
+constexpr const char VERSION[] = "1.2.0";
 } // namespace Firmware
 
 /** @brief SSD1306 display geometry and supported I2C addresses. */
@@ -16,6 +16,8 @@ constexpr uint8_t HEIGHT = 64;
 constexpr int8_t RESET_PIN = -1;
 constexpr uint8_t I2C_ADDRESS = 0x3C;
 constexpr uint8_t I2C_ADDRESS_ALT = 0x3D;
+/** Standard I2C clock speed in Hz (100 kHz). */
+constexpr uint32_t I2C_CLOCK_HZ = 100000;
 } // namespace DisplayConfig
 
 /** @brief Physical GPIO mapping for the deployed ESP32 wiring. */
@@ -65,6 +67,9 @@ constexpr uint32_t LOOP_DELAY_MS = 5;
 namespace GpsConfig {
 /** Default NEO-6M output baud rate; change to match receiver configuration. */
 constexpr uint32_t BAUD_RATE = 9600;
+
+/** NMEA speed is reported in knots; this converts to km/h (1 knot = 1.852 km/h). */
+constexpr double KNOTS_TO_KMH = 1.852;
 
 /**
  * Minimum satellites required for the REFERENCE_OK state.  Six satellites

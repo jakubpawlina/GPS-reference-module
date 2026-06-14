@@ -10,7 +10,7 @@
 #   clang-format  — C++ (firmware/, tests/firmware/, tests/integration/)
 #   shfmt         — Shell (tools/*.sh)
 
-set -euo pipefail
+set -Eeuo pipefail
 cd "$(dirname "$0")/.."
 
 # ── Argument parsing ──────────────────────────────────────────────────────────

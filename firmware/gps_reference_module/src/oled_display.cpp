@@ -53,15 +53,15 @@ uint8_t probeOledAddress() {
   delay(5);
 
   Wire.begin(PinConfig::OLED_SDA, PinConfig::OLED_SCL);
-  Wire.setClock(100000);
+  Wire.setClock(DisplayConfig::I2C_CLOCK_HZ);
   delay(10);
 
   const uint8_t candidates[] = {DisplayConfig::I2C_ADDRESS, DisplayConfig::I2C_ADDRESS_ALT};
 
-  for (uint8_t i = 0; i < sizeof(candidates) / sizeof(candidates[0]); i++) {
-    Wire.beginTransmission(candidates[i]);
+  for (uint8_t addr : candidates) {
+    Wire.beginTransmission(addr);
     if (Wire.endTransmission() == 0) {
-      return candidates[i];
+      return addr;
     }
   }
 

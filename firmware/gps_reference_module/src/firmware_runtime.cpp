@@ -92,7 +92,7 @@ void updateLeds(const GpsProcessing::GpsValiditySnapshot &snapshot) {
 
 void setupFirmware() {
   Serial.begin(UsbConfig::BAUD_RATE);
-  delay(500);
+  delay(500); // Let USB CDC settle before first output
 
   initializeDisplay();
   StatusLedController::initializeLeds();
