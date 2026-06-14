@@ -184,6 +184,15 @@ avoid blocking the event loop. The implementation addresses four constraints:
    port, the port is closed and reopened (recovers a rare Linux kernel condition
    where the file descriptor stalls silently).
 
+5. **Freshness and input bounds** - serial records are limited to 4096 bytes by
+   default, and live state expires after 3 seconds without a new `parsed_state`.
+   The API returns 503 rather than presenting a disconnected receiver's last fix
+   as current.
+
+6. **Supervisor resilience** - malformed JSON values are discarded and
+   unexpected processing or storage failures are logged and retried instead of
+   terminating the background reader task.
+
 ### Shutdown (`main.py`)
 
 uvicorn's own `handle_exit` method is patched to set the reader's stop flag

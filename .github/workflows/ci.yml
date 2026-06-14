@@ -27,16 +27,7 @@ jobs:
       - name: Bootstrap firmware toolchain
         run: mise run firmware:bootstrap
 
-      - name: Run all tests
-        run: ./tools/run-tests.sh all
+      - name: Run full verification
+        run: mise run verify
         env:
           FORCE_COLOR: "1"
-
-      - name: Compile firmware
-        run: mise run firmware:compile
-
-      - name: Check formatting
-        run: ./tools/run-format.sh --check
-
-      - name: Lint
-        run: ./tools/run-lint.sh

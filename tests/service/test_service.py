@@ -80,6 +80,9 @@ TEST_DESCRIPTIONS: dict[str, str] = {
     "test_api_status_returns_503_before_first_message": (
         "Returns HTTP 503 when the serial reader has not yet received any data."
     ),
+    "test_api_status_rejects_stale_state": (
+        "Returns HTTP 503 instead of presenting an expired GPS state as current."
+    ),
     "test_stream_disables_caching_and_proxy_buffering": (
         "SSE responses disable caches and nginx buffering so updates arrive immediately."
     ),
@@ -87,6 +90,9 @@ TEST_DESCRIPTIONS: dict[str, str] = {
         "SSE emits the current parsed state and releases its connection slot when closed."
     ),
     "test_stream_emits_keepalive": ("SSE emits a comment keepalive when no new GPS state arrives."),
+    "test_stream_emits_unavailable_transition": (
+        "SSE emits one NO_GPS_DATA transition when the latest state becomes stale."
+    ),
     "test_stream_rejects_connections_above_limit": (
         "SSE returns HTTP 503 when the configured concurrent connection limit is reached."
     ),
@@ -99,11 +105,17 @@ TEST_DESCRIPTIONS: dict[str, str] = {
     "test_reader_retries_after_serial_fault": (
         "The serial supervisor retries after a recoverable port fault."
     ),
+    "test_reader_retries_after_unexpected_failure": (
+        "The serial supervisor survives unexpected processing or database failures."
+    ),
     "test_reader_reopens_stalled_port": (
         "The serial loop closes and reports a port that produces no data before its deadline."
     ),
     "test_reader_skips_malformed_json": (
-        "Silently discards lines that are not valid JSON without crashing the reader loop."
+        "Discards malformed and non-object JSON without crashing the reader loop."
+    ),
+    "test_reader_bounds_serial_lines": (
+        "Limits each serial record read so missing newlines cannot grow memory without bound."
     ),
     "test_reader_start_and_stop_are_idempotent": (
         "Starts one serial task and shuts it down cooperatively without leaking task state."
@@ -279,6 +291,13 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
         finally:
             reader._set_state(original_state)
 
+    async def test_api_status_rejects_stale_state(self) -> None:
+        reader._set_state(_SAMPLE_STATE.copy(), received_at=0.0)
+        with self.assertRaises(HTTPException) as ctx:
+            await api.get_status()
+        self.assertEqual(ctx.exception.status_code, 503)
+        self.assertIn("stale", ctx.exception.detail)
+
     async def test_stream_disables_caching_and_proxy_buffering(self) -> None:
         reader._set_state(_SAMPLE_STATE.copy())
         response = await api.stream()
@@ -310,6 +329,17 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
             await events.aclose()
         finally:
             api.SSE_KEEPALIVE_SECONDS = original_keepalive
+
+    async def test_stream_emits_unavailable_transition(self) -> None:
+        reader._set_state(_SAMPLE_STATE.copy())
+        response = await api.stream()
+        events = _sse_iterator(response)
+        await events.__anext__()
+        reader._set_state(_SAMPLE_STATE.copy(), received_at=0.0)
+        event = await events.__anext__()
+        self.assertIn('"state":"NO_GPS_DATA"', event)
+        self.assertIn('"serviceStale":true', event)
+        await events.aclose()
 
     async def test_stream_rejects_connections_above_limit(self) -> None:
         original_limit = config.MAX_SSE_CONNECTIONS
@@ -376,6 +406,8 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
         feed = [
             b"not json at all\n",
             b"{broken\n",
+            b"[]\n",
+            b"null\n",
             b"\n",
             b'{"type":"parsed_state","state":"REFERENCE_OK"}\n',
         ]
@@ -408,6 +440,24 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["state"], "REFERENCE_OK")
 
+    async def test_reader_bounds_serial_lines(self) -> None:
+        class FakeSerial:
+            def __init__(self) -> None:
+                self.expected = b""
+                self.size = 0
+
+            def read_until(self, expected: bytes, size: int) -> bytes:
+                self.expected = expected
+                self.size = size
+                reader._stop.set()
+                return b""
+
+        fake_serial = FakeSerial()
+        reader._stop.clear()
+        self.assertEqual(reader._readline_interruptible(fake_serial), b"")
+        self.assertEqual(fake_serial.expected, b"\n")
+        self.assertEqual(fake_serial.size, config.SERIAL_MAX_LINE_BYTES)
+
     async def test_reader_start_and_stop_are_idempotent(self) -> None:
         calls = 0
 
@@ -435,6 +485,26 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
             calls += 1
             if calls == 1:
                 raise OSError("port disconnected")
+            reader._stop.set()
+
+        with (
+            patch.object(reader, "_loop", new=fake_loop),
+            patch.object(reader, "SERIAL_RETRY_DELAY_SECONDS", 0),
+            patch.object(reader.asyncio, "sleep", new=AsyncMock()),
+        ):
+            reader._stop.clear()
+            await reader._run()
+
+        self.assertEqual(calls, 2)
+
+    async def test_reader_retries_after_unexpected_failure(self) -> None:
+        calls = 0
+
+        async def fake_loop() -> None:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                raise RuntimeError("database unavailable")
             reader._stop.set()
 
         with (

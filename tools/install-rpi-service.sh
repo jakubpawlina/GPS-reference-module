@@ -21,15 +21,35 @@ die() {
 	exit 1
 }
 
+write_systemd_environment() {
+	local file="$1"
+	local name="$2"
+	local value="$3"
+
+	[[ "$value" != *$'\n'* && "$value" != *$'\r'* ]] ||
+		die "$name must not contain newline characters"
+	value="${value//\\/\\\\}"
+	value="${value//\"/\\\"}"
+	value="${value//%/%%}"
+	printf 'Environment="%s=%s"\n' "$name" "$value" >>"$file"
+}
+
 # ── Configuration (override via environment) ───────────────────────────────────
 APP_USER="${GPS_APP_USER:-refmod}"
 INSTALL_DIR="/opt/gps-reference"
 DATA_DIR="/var/lib/gps-reference"
 SERVICE="gps-reference"
 SERIAL_PORT="${GPS_SERIAL_PORT:-/dev/ttyUSB0}"
+BAUD_RATE="${GPS_BAUD_RATE:-115200}"
+SERIAL_MAX_LINE_BYTES="${GPS_SERIAL_MAX_LINE_BYTES:-4096}"
+STATE_STALE_SECONDS="${GPS_STATE_STALE_SECONDS:-3}"
+DB_PATH="${GPS_DB_PATH:-$DATA_DIR/data.db}"
 HTTP_PORT="${GPS_HTTP_PORT:-8000}"
+HTTP_HOST="${GPS_HTTP_HOST:-0.0.0.0}"
 MAX_DB_BYTES="${GPS_MAX_DB_BYTES:-4294967296}" # 4 GB
 MAX_SSE_CONNECTIONS="${GPS_MAX_SSE_CONNECTIONS:-32}"
+CORS_ORIGINS="${GPS_CORS_ORIGINS:-*}"
+API_KEY="${GPS_API_KEY:-}"
 CLOUD_WEBHOOK="${GPS_CLOUD_WEBHOOK:-}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -136,29 +156,43 @@ cp "$SERVICE_DIR/gps-reference.service" "/etc/systemd/system/${SERVICE}.service"
 
 OVERRIDE_DIR="/etc/systemd/system/${SERVICE}.service.d"
 mkdir -p "$OVERRIDE_DIR"
-cat >"$OVERRIDE_DIR/local.conf" <<EOF
+GENERATED_OVERRIDE="$OVERRIDE_DIR/10-generated.conf"
+cat >"$GENERATED_OVERRIDE" <<EOF
 [Service]
 User=${APP_USER}
 Group=${APP_USER}
-Environment=GPS_SERIAL_PORT=${SERIAL_PORT}
-Environment=GPS_DB_PATH=${DATA_DIR}/data.db
-Environment=GPS_HTTP_PORT=${HTTP_PORT}
-Environment=GPS_MAX_DB_BYTES=${MAX_DB_BYTES}
-Environment=GPS_MAX_SSE_CONNECTIONS=${MAX_SSE_CONNECTIONS}
-# Uncomment to override defaults:
-# Environment=GPS_BAUD_RATE=115200
-# Environment=GPS_HTTP_HOST=0.0.0.0
 EOF
-
-if [[ -n "$CLOUD_WEBHOOK" ]]; then
-	echo "Environment=GPS_CLOUD_WEBHOOK=${CLOUD_WEBHOOK}" >>"$OVERRIDE_DIR/local.conf"
-	info "Cloud webhook configured: $CLOUD_WEBHOOK"
-else
-	echo "# Environment=GPS_CLOUD_WEBHOOK=https://your-endpoint/ingest" >>"$OVERRIDE_DIR/local.conf"
-	info "Cloud webhook not set (edit $OVERRIDE_DIR/local.conf to add one)"
+write_systemd_environment "$GENERATED_OVERRIDE" GPS_SERIAL_PORT "$SERIAL_PORT"
+write_systemd_environment "$GENERATED_OVERRIDE" GPS_BAUD_RATE "$BAUD_RATE"
+write_systemd_environment "$GENERATED_OVERRIDE" GPS_SERIAL_MAX_LINE_BYTES "$SERIAL_MAX_LINE_BYTES"
+write_systemd_environment "$GENERATED_OVERRIDE" GPS_STATE_STALE_SECONDS "$STATE_STALE_SECONDS"
+write_systemd_environment "$GENERATED_OVERRIDE" GPS_DB_PATH "$DB_PATH"
+write_systemd_environment "$GENERATED_OVERRIDE" GPS_HTTP_HOST "$HTTP_HOST"
+write_systemd_environment "$GENERATED_OVERRIDE" GPS_HTTP_PORT "$HTTP_PORT"
+write_systemd_environment "$GENERATED_OVERRIDE" GPS_MAX_DB_BYTES "$MAX_DB_BYTES"
+write_systemd_environment "$GENERATED_OVERRIDE" GPS_MAX_SSE_CONNECTIONS "$MAX_SSE_CONNECTIONS"
+write_systemd_environment "$GENERATED_OVERRIDE" GPS_CORS_ORIGINS "$CORS_ORIGINS"
+if [[ -n "$API_KEY" ]]; then
+	write_systemd_environment "$GENERATED_OVERRIDE" GPS_API_KEY "$API_KEY"
 fi
+if [[ -n "$CLOUD_WEBHOOK" ]]; then
+	write_systemd_environment "$GENERATED_OVERRIDE" GPS_CLOUD_WEBHOOK "$CLOUD_WEBHOOK"
+fi
+chmod 600 "$GENERATED_OVERRIDE"
 
-info "Override written to $OVERRIDE_DIR/local.conf"
+info "Generated settings written to $GENERATED_OVERRIDE"
+if [[ -f "$OVERRIDE_DIR/local.conf" ]]; then
+	info "Preserved administrator overrides in $OVERRIDE_DIR/local.conf"
+else
+	cat >"$OVERRIDE_DIR/local.conf.example" <<'EOF'
+[Service]
+# Administrator-owned overrides go in local.conf. The installer never overwrites it.
+# Environment="GPS_HTTP_HOST=127.0.0.1"
+# Environment="GPS_API_KEY=replace-with-a-secret"
+EOF
+	chmod 600 "$OVERRIDE_DIR/local.conf.example"
+	info "Administrator overrides can be added in $OVERRIDE_DIR/local.conf"
+fi
 
 systemctl daemon-reload
 systemctl enable "$SERVICE"
@@ -196,7 +230,8 @@ echo -e "  Dashboard : ${GREEN}http://${HOST_IP}:${HTTP_PORT}/${NC}"
 echo -e "  API docs  : ${GREEN}http://${HOST_IP}:${HTTP_PORT}/docs${NC}"
 echo -e "  Status    : ${GREEN}http://${HOST_IP}:${HTTP_PORT}/api/status${NC}"
 echo -e "  Logs      : journalctl -u ${SERVICE} -f"
-echo -e "  Config    : ${OVERRIDE_DIR}/local.conf"
+echo -e "  Config    : ${GENERATED_OVERRIDE}"
+echo -e "  Overrides : ${OVERRIDE_DIR}/local.conf"
 echo -e "  Data      : ${DATA_DIR}/data.db"
 echo ""
 echo -e "  Useful commands:"

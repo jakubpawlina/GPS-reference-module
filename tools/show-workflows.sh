@@ -20,6 +20,7 @@ Code quality
   mise run format               Auto-format Python, C++, and shell
   mise run format:check         Verify formatting without changes (CI gate)
   mise run lint                 Python and shell static analysis
+  mise run typecheck            Python service type checking
 
 Before committing
   mise run test:all             All host-side tests (no Docker required)
@@ -37,7 +38,8 @@ All task groups
   service:*     Local dev server and dependency bootstrap
   test:*        All test layers
   simulation:*  Wokwi project generation and build
-  format / lint Code formatting and static analysis
+  format / lint / typecheck
+                 Code formatting and static analysis
   docs:*        Firmware API documentation
   deploy:*      Raspberry Pi service installation
 EOF

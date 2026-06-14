@@ -21,6 +21,7 @@ import asyncio
 import json
 import logging
 import threading
+import time
 
 import config
 import database
@@ -37,22 +38,44 @@ SERIAL_STALL_TIMEOUT_SECONDS = 10.0
 # serialisation.
 _state_lock: threading.Lock = threading.Lock()
 current_state: dict = {}
+_state_received_at: float | None = None
 
 _stop: threading.Event = threading.Event()
 _task: asyncio.Task | None = None
 
 
 def get_state() -> dict:
-    """Return a snapshot of the current GPS state (thread-safe)."""
+    """Return the current GPS state, or an empty dict when it is stale."""
     with _state_lock:
+        if _state_received_at is None:
+            return {}
+        if time.monotonic() - _state_received_at > config.STATE_STALE_SECONDS:
+            return {}
         return current_state
 
 
-def _set_state(state: dict) -> None:
+def _set_state(state: dict, received_at: float | None = None) -> None:
     """Replace the current GPS state (thread-safe)."""
-    global current_state
+    global current_state, _state_received_at
     with _state_lock:
         current_state = state
+        _state_received_at = (
+            (time.monotonic() if received_at is None else received_at) if state else None
+        )
+
+
+def get_health() -> dict:
+    """Return serial-reader health metadata for diagnostics and API errors."""
+    with _state_lock:
+        age_seconds = (
+            None if _state_received_at is None else max(0.0, time.monotonic() - _state_received_at)
+        )
+    task = _task
+    return {
+        "task_running": task is not None and not task.done(),
+        "state_age_seconds": age_seconds,
+        "state_stale": age_seconds is None or age_seconds > config.STATE_STALE_SECONDS,
+    }
 
 
 # ── Lifecycle ──────────────────────────────────────────────────────────────────
@@ -102,9 +125,9 @@ def _open_port() -> serial.Serial:
 
 
 def _readline_interruptible(ser: serial.Serial) -> bytes:
-    """Blocking readline; returns b"" when _stop is set (within ~1 s)."""
+    """Read one bounded line; returns b"" when stopped or on serial timeout."""
     while not _stop.is_set():
-        line = ser.readline()
+        line = ser.read_until(b"\n", config.SERIAL_MAX_LINE_BYTES)
         if line:
             return line
     return b""
@@ -120,11 +143,18 @@ async def _run() -> None:
             if _stop.is_set():
                 break
             log.warning("Serial fault (%s), retry in %.0f s …", exc, SERIAL_RETRY_DELAY_SECONDS)
-            retry_ticks = max(1, int(SERIAL_RETRY_DELAY_SECONDS * 10))
-            for _ in range(retry_ticks):
-                if _stop.is_set():
-                    break
-                await asyncio.sleep(0.1)
+        except Exception:
+            if _stop.is_set():
+                break
+            log.exception(
+                "Unexpected serial-reader failure; retry in %.0f s", SERIAL_RETRY_DELAY_SECONDS
+            )
+
+        retry_ticks = max(1, int(SERIAL_RETRY_DELAY_SECONDS * 10))
+        for _ in range(retry_ticks):
+            if _stop.is_set():
+                break
+            await asyncio.sleep(0.1)
 
 
 async def _loop() -> None:
@@ -154,6 +184,9 @@ async def _loop() -> None:
             try:
                 msg = json.loads(line)
             except json.JSONDecodeError:
+                continue
+            if not isinstance(msg, dict):
+                log.debug("Ignoring JSON serial message that is not an object")
                 continue
 
             msg_type = msg.get("type")

@@ -216,7 +216,11 @@ async def get_status():
     """
     state = reader.get_state()
     if not state:
-        raise HTTPException(503, detail="No data received yet - is the ESP32 connected?")
+        health = reader.get_health()
+        detail = "GPS state is unavailable - is the ESP32 connected?"
+        if health["state_age_seconds"] is not None:
+            detail = "GPS state is stale - is the ESP32 still connected?"
+        raise HTTPException(503, detail=detail)
     return state
 
 
@@ -242,6 +246,7 @@ async def stream():
     async def _generate():
         global _active_sse_connections
         last = None
+        unavailable_sent = False
         last_keepalive = asyncio.get_running_loop().time()
         try:
             while True:
@@ -251,7 +256,16 @@ async def stream():
                 # every update, so `is not` detects new data without deep comparison.
                 if state and state is not last:
                     last = state
+                    unavailable_sent = False
                     yield f"data: {json.dumps(state)}\n\n"
+                    last_keepalive = now
+                elif not state and last is not None and not unavailable_sent:
+                    unavailable_sent = True
+                    yield (
+                        'data: {"type":"parsed_state","state":"NO_GPS_DATA",'
+                        '"valid":false,"gpsData":false,"fix":false,'
+                        '"serviceStale":true}\n\n'
+                    )
                     last_keepalive = now
                 elif now - last_keepalive >= SSE_KEEPALIVE_SECONDS:
                     # SSE comment - keeps the connection alive through proxies that

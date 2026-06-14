@@ -26,6 +26,8 @@ RestrictSUIDSGID=yes
 
 # Override any of these in /etc/systemd/system/gps-reference.service.d/local.conf
 Environment=GPS_SERIAL_PORT=/dev/ttyUSB0
+Environment=GPS_SERIAL_MAX_LINE_BYTES=4096
+Environment=GPS_STATE_STALE_SECONDS=3
 Environment=GPS_DB_PATH=/var/lib/gps-reference/data.db
 Environment=GPS_HTTP_PORT=8000
 Environment=GPS_MAX_DB_BYTES=4294967296

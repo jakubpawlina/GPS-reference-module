@@ -14,9 +14,22 @@ def _int_env(name: str, default: int) -> int:
         raise ValueError(f"Environment variable {name}={raw!r} is not a valid integer") from None
 
 
+def _float_env(name: str, default: float) -> float:
+    """Read a float environment variable with a descriptive error on bad input."""
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        return float(raw)
+    except ValueError:
+        raise ValueError(f"Environment variable {name}={raw!r} is not a valid number") from None
+
+
 # Serial
 SERIAL_PORT: str = os.getenv("GPS_SERIAL_PORT", "/dev/ttyUSB0")
 BAUD_RATE: int = _int_env("GPS_BAUD_RATE", 115200)
+SERIAL_MAX_LINE_BYTES: int = _int_env("GPS_SERIAL_MAX_LINE_BYTES", 4096)
+STATE_STALE_SECONDS: float = _float_env("GPS_STATE_STALE_SECONDS", 3.0)
 
 # Storage
 DB_PATH: str = os.getenv("GPS_DB_PATH", "/var/lib/gps-reference/data.db")
@@ -53,6 +66,14 @@ def validate() -> None:
         raise ValueError("GPS_SERIAL_PORT must not be empty")
     if BAUD_RATE <= 0:
         raise ValueError(f"GPS_BAUD_RATE must be a positive integer, got {BAUD_RATE!r}")
+    if SERIAL_MAX_LINE_BYTES < 256:
+        raise ValueError(
+            f"GPS_SERIAL_MAX_LINE_BYTES must be at least 256, got {SERIAL_MAX_LINE_BYTES!r}"
+        )
+    if STATE_STALE_SECONDS <= 0:
+        raise ValueError(
+            f"GPS_STATE_STALE_SECONDS must be greater than zero, got {STATE_STALE_SECONDS!r}"
+        )
     if not 1 <= HTTP_PORT <= 65535:
         raise ValueError(f"GPS_HTTP_PORT must be between 1 and 65535, got {HTTP_PORT!r}")
     if MAX_SSE_CONNECTIONS <= 0:

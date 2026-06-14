@@ -29,7 +29,7 @@ run = "./tools/run-firmware-checks.sh compile"
 
 [tasks."service:bootstrap"]
 description = "First setup: create the service test environment and install Python dependencies"
-sources = ["service/requirements.txt", "tools/setup-service-environment.sh"]
+sources = ["service/requirements.txt", "service/requirements-dev.txt", "tools/setup-service-environment.sh"]
 outputs = [".mise-state/service-environment", ".venv/bin/python"]
 raw = true
 run = "./tools/setup-service-environment.sh"
@@ -118,6 +118,12 @@ run = "./tools/run-format.sh --check"
 description = "Lint: static analysis for Python (ruff check) and shell (shfmt)"
 raw = true
 run = "./tools/run-lint.sh"
+
+[tasks.typecheck]
+description = "Type check: validate the Python service with Pyright"
+depends = ["service:bootstrap"]
+raw = true
+run = ".venv/bin/pyright"
 
 [tasks."lint:fix"]
 description = "Lint: auto-fix Python issues (ruff check --fix)"

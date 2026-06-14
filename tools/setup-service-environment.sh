@@ -9,7 +9,7 @@ create_environment() {
 }
 
 install_dependencies() {
-	"$ROOT/.venv/bin/pip" install -r "$ROOT/service/requirements.txt"
+	"$ROOT/.venv/bin/pip" install -r "$ROOT/service/requirements-dev.txt"
 }
 
 tasklog_begin "Raspberry Pi service environment"

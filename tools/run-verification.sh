@@ -9,6 +9,7 @@ started_ms="$(tasklog_now_ms)"
 "$ROOT/tools/run-tests.sh" all
 "$ROOT/tools/run-format.sh" --check
 "$ROOT/tools/run-lint.sh"
+"$ROOT/.venv/bin/pyright"
 "$ROOT/tools/build-wokwi-project.sh"
 
 finished_ms="$(tasklog_now_ms)"

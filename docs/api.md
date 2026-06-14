@@ -48,7 +48,8 @@ Returns the latest GPS state received from the ESP32.
 }
 ```
 
-**Response 503** - serial port not connected or no data received yet.
+**Response 503** - serial port not connected, no data received yet, or the last
+state is older than `GPS_STATE_STALE_SECONDS`.
 
 ---
 
@@ -176,6 +177,10 @@ curl -N http://<rpi-ip>:8000/api/stream
 
 The connection stays open indefinitely. Browsers using `EventSource` reconnect
 automatically on interruption.
+
+If the latest state expires, the stream emits one synthetic `NO_GPS_DATA`
+event with `"serviceStale": true` so dashboards stop presenting the last fix as
+current.
 
 ---
 

@@ -313,6 +313,8 @@ The Raspberry Pi service is configured through environment variables in
 [Service]
 Environment=GPS_SERIAL_PORT=/dev/ttyUSB0
 Environment=GPS_BAUD_RATE=115200
+Environment=GPS_SERIAL_MAX_LINE_BYTES=4096
+Environment=GPS_STATE_STALE_SECONDS=3
 Environment=GPS_DB_PATH=/var/lib/gps-reference/data.db
 Environment=GPS_MAX_DB_BYTES=4294967296
 Environment=GPS_MAX_SSE_CONNECTIONS=32
@@ -325,6 +327,8 @@ Environment=GPS_HTTP_PORT=8000
 |---|---|---|
 | `GPS_SERIAL_PORT` | `/dev/ttyUSB0` | ESP32 serial device |
 | `GPS_BAUD_RATE` | `115200` | ESP32 USB serial baud rate |
+| `GPS_SERIAL_MAX_LINE_BYTES` | `4096` | Maximum accepted NDJSON record size |
+| `GPS_STATE_STALE_SECONDS` | `3` | Age after which live GPS state becomes unavailable |
 | `GPS_DB_PATH` | `/var/lib/gps-reference/data.db` | SQLite database |
 | `GPS_MAX_DB_BYTES` | `4294967296` | Maximum database size, default 4 GiB |
 | `GPS_MAX_SSE_CONNECTIONS` | `32` | Maximum concurrent dashboard event streams |
@@ -367,6 +371,7 @@ Run `mise run help` to see this flow at any time.
 4. FORMAT + LINT
    mise run format               ← auto-format Python, C++, and shell
    mise run lint                 ← static analysis
+   mise run typecheck            ← Python type checking
 
 5. COMMIT GATE
    mise run test:all             ← every host-side test layer (no Docker)
@@ -392,6 +397,7 @@ Run `mise run help` to see this flow at any time.
 | `mise run format` | Auto-format Python, C++, and shell |
 | `mise run format:check` | Verify formatting without changes (CI gate) |
 | `mise run lint` | Python and shell static analysis |
+| `mise run typecheck` | Type-check the Python service |
 | `mise run verify` | All tests plus ESP32 and Wokwi builds (requires Docker) |
 | `mise run firmware:compile` | Compile firmware for the ESP32 |
 | `mise run simulation:generate` | Generate Wokwi simulator sources without compiling |
@@ -446,6 +452,7 @@ gps-reference-module/
 ├── service/
 │   ├── main.py                    Raspberry Pi service entrypoint
 │   ├── requirements.txt           Python dependencies
+│   ├── requirements-dev.txt       Local test and type-check dependencies
 │   └── ...
 ├── simulation/assets/             Wokwi diagram, configuration, and GPS chip
 ├── tests/

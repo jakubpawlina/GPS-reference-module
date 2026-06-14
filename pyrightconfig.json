@@ -3,5 +3,8 @@
   "venvPath": ".",
   "venv": ".venv",
   "extraPaths": ["service"],
-  "exclude": ["**/__pycache__"]
+  "include": ["service"],
+  "exclude": [".venv", "**/__pycache__"],
+  "typeCheckingMode": "basic",
+  "useLibraryCodeForTypes": false
 }

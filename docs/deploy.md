@@ -71,16 +71,27 @@ sudo systemctl enable --now gps-reference
 
 ## Configuration
 
-All settings are environment variables. Edit the systemd override file:
+The installer writes generated settings to:
+
+```
+/etc/systemd/system/gps-reference.service.d/10-generated.conf
+```
+
+Place administrator-owned settings and secrets in:
 
 ```
 /etc/systemd/system/gps-reference.service.d/local.conf
 ```
 
+The installer never overwrites `local.conf`, so upgrades preserve local
+authentication, bind-address, CORS, and webhook settings.
+
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `GPS_SERIAL_PORT` | `/dev/ttyUSB0` | Serial port the ESP32 is connected to |
 | `GPS_BAUD_RATE` | `115200` | Must match `UsbConfig::BAUD_RATE` in firmware |
+| `GPS_SERIAL_MAX_LINE_BYTES` | `4096` | Maximum accepted serial NDJSON record size |
+| `GPS_STATE_STALE_SECONDS` | `3` | Seconds without a parsed state before live data becomes unavailable |
 | `GPS_DB_PATH` | `/var/lib/gps-reference/data.db` | SQLite database path |
 | `GPS_MAX_DB_BYTES` | `4294967296` | Storage cap in bytes (default 4 GB) |
 | `GPS_MAX_SSE_CONNECTIONS` | `32` | Maximum concurrent dashboard event streams |
@@ -254,7 +265,8 @@ to the systemd override.
 
 ### `/api/status` returns 503
 
-The serial reader has not received any data yet. Check:
+The serial reader has not received fresh data yet. `/api/status` also returns
+503 when the last parsed state is older than `GPS_STATE_STALE_SECONDS`. Check:
 
 ```bash
 journalctl -u gps-reference -n 50

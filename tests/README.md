@@ -20,6 +20,7 @@ language.
 | All tests | `mise run test:all` | Every host-side test layer | None |
 | Format | `mise run format:check` | Python (ruff), C++ (clang-format), and shell (shfmt) formatting gate | None |
 | Lint | `mise run lint` | Python (ruff check) and shell static analysis | None |
+| Type check | `mise run typecheck` | Python service | None |
 | Full verification | `mise run verify` | All tests plus ESP32 and Wokwi WebAssembly builds | Docker for the custom chip build |
 
 All compiled host tests use strict warnings. C++ tests additionally run with
