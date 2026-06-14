@@ -8,7 +8,6 @@ import tempfile
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 GENERATOR = ROOT / "tools" / "generate-wokwi-project.py"
 VALIDATOR = ROOT / "tools" / "validate-wokwi-project.py"
@@ -143,11 +142,21 @@ class WokwiGeneratorTests(unittest.TestCase):
 
 class ListedTestResult(unittest.TextTestResult):
     DESCRIPTIONS = {
-        "test_generator_copies_nested_sources_and_assets": "Copies the complete firmware tree and nested simulation assets.",
-        "test_generator_honors_gitignore": "Excludes ignored build output from the generated Wokwi project.",
-        "test_generator_rejects_ambiguous_entrypoints": "Fails when the firmware contains more than one Arduino entrypoint.",
-        "test_generator_rejects_overlapping_output": "Prevents generation from deleting or nesting inside source directories.",
-        "test_tracked_assets_validate": "Checks diagram wiring, pin mapping, libraries, VS Code files, and TOML.",
+        "test_generator_copies_nested_sources_and_assets": (
+            "Copies the complete firmware tree and nested simulation assets."
+        ),
+        "test_generator_honors_gitignore": (
+            "Excludes ignored build output from the generated Wokwi project."
+        ),
+        "test_generator_rejects_ambiguous_entrypoints": (
+            "Fails when the firmware contains more than one Arduino entrypoint."
+        ),
+        "test_generator_rejects_overlapping_output": (
+            "Prevents generation from deleting or nesting inside source directories."
+        ),
+        "test_tracked_assets_validate": (
+            "Checks diagram wiring, pin mapping, libraries, VS Code files, and TOML."
+        ),
     }
 
     def addSuccess(self, test: unittest.TestCase) -> None:

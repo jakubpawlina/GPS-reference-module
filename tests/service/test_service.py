@@ -31,7 +31,6 @@ import database  # noqa: E402
 import reader  # noqa: E402
 from fastapi import HTTPException  # noqa: E402
 
-
 # A realistic parsed_state payload matching the firmware JSON schema.
 _SAMPLE_STATE: dict = {
     "type": "parsed_state",
