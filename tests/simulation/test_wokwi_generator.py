@@ -15,7 +15,9 @@ VALIDATOR = ROOT / "tools" / "validate-wokwi-project.py"
 
 
 class WokwiGeneratorTests(unittest.TestCase):
-    def run_generator(self, firmware: Path, assets: Path, output: Path) -> subprocess.CompletedProcess[str]:
+    def run_generator(
+        self, firmware: Path, assets: Path, output: Path
+    ) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [
                 "python3",
@@ -68,7 +70,9 @@ class WokwiGeneratorTests(unittest.TestCase):
             result = self.run_generator(firmware, assets, output)
 
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual((output / "sketch.ino").read_text(), (firmware / "module.ino").read_text())
+            self.assertEqual(
+                (output / "sketch.ino").read_text(), (firmware / "module.ino").read_text()
+            )
             self.assertEqual((output / "src" / "module.cpp").read_text(), "int value = 1;\n")
             self.assertEqual((output / "nested" / "asset.txt").read_text(), "asset\n")
             self.assertFalse((output / "module.ino").exists())
@@ -139,16 +143,11 @@ class WokwiGeneratorTests(unittest.TestCase):
 
 class ListedTestResult(unittest.TextTestResult):
     DESCRIPTIONS = {
-        "test_generator_copies_nested_sources_and_assets":
-            "Copies the complete firmware tree and nested simulation assets.",
-        "test_generator_honors_gitignore":
-            "Excludes ignored build output from the generated Wokwi project.",
-        "test_generator_rejects_ambiguous_entrypoints":
-            "Fails when the firmware contains more than one Arduino entrypoint.",
-        "test_generator_rejects_overlapping_output":
-            "Prevents generation from deleting or nesting inside source directories.",
-        "test_tracked_assets_validate":
-            "Checks diagram wiring, pin mapping, libraries, VS Code files, and TOML.",
+        "test_generator_copies_nested_sources_and_assets": "Copies the complete firmware tree and nested simulation assets.",
+        "test_generator_honors_gitignore": "Excludes ignored build output from the generated Wokwi project.",
+        "test_generator_rejects_ambiguous_entrypoints": "Fails when the firmware contains more than one Arduino entrypoint.",
+        "test_generator_rejects_overlapping_output": "Prevents generation from deleting or nesting inside source directories.",
+        "test_tracked_assets_validate": "Checks diagram wiring, pin mapping, libraries, VS Code files, and TOML.",
     }
 
     def addSuccess(self, test: unittest.TestCase) -> None:
@@ -162,6 +161,6 @@ if __name__ == "__main__":
     runner = unittest.TextTestRunner(
         stream=sys.stderr,
         verbosity=0,
-        resultclass=ListedTestResult,
+        resultclass=ListedTestResult,  # type: ignore[arg-type]  # typeshed variance
     )
     unittest.main(testRunner=runner)

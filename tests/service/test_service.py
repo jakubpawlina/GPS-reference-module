@@ -115,9 +115,7 @@ TEST_DESCRIPTIONS: dict[str, str] = {
     "test_upload_returns_502_on_webhook_error": (
         "POST /api/upload returns 502 when the webhook responds with an HTTP error status."
     ),
-    "test_since_rejects_zero_limit": (
-        "GET /api/records/since returns 422 when limit is 0."
-    ),
+    "test_since_rejects_zero_limit": ("GET /api/records/since returns 422 when limit is 0."),
     "test_since_rejects_overlimit": (
         "GET /api/records/since returns 422 when limit exceeds the configured maximum."
     ),
@@ -134,6 +132,7 @@ TEST_DESCRIPTIONS: dict[str, str] = {
 
 
 # ── Unit-style tests ───────────────────────────────────────────────────────────
+
 
 class ServiceTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
@@ -299,6 +298,7 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
 
 # ── HTTP-layer tests ───────────────────────────────────────────────────────────
 
+
 class ApiHttpTests(unittest.IsolatedAsyncioTestCase):
     """Full HTTP round-trip tests via AsyncClient + ASGITransport.
 
@@ -313,7 +313,7 @@ class ApiHttpTests(unittest.IsolatedAsyncioTestCase):
         self._orig_max_db_bytes = config.MAX_DB_BYTES
         self._orig_webhook = config.CLOUD_WEBHOOK
         config.DB_PATH = str(Path(self.temp_dir.name) / "positions.db")
-        config.MAX_DB_BYTES = 1024 ** 3
+        config.MAX_DB_BYTES = 1024**3
         config.CLOUD_WEBHOOK = ""
         await database.init()
         reader.current_state = {}
@@ -363,8 +363,15 @@ class ApiHttpTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(resp.status_code, 200)
         body = resp.json()
-        for key in ("record_count", "oldest_ts", "newest_ts",
-                    "db_size_bytes", "db_size_mb", "max_size_mb", "usage_pct"):
+        for key in (
+            "record_count",
+            "oldest_ts",
+            "newest_ts",
+            "db_size_bytes",
+            "db_size_mb",
+            "max_size_mb",
+            "usage_pct",
+        ):
             self.assertIn(key, body, f"response missing key: {key!r}")
         self.assertEqual(body["record_count"], 1)
         self.assertGreater(body["db_size_bytes"], 0)
@@ -556,9 +563,14 @@ class ApiHttpTests(unittest.IsolatedAsyncioTestCase):
 
         paths = {e["path"] for e in body["endpoints"]}
         for expected_path in (
-            "/api/status", "/api/stats", "/api/records/since",
-            "/api/records/range", "/api/stream", "/api/upload",
-            "/api/endpoints", "/",
+            "/api/status",
+            "/api/stats",
+            "/api/records/since",
+            "/api/records/range",
+            "/api/stream",
+            "/api/upload",
+            "/api/endpoints",
+            "/",
         ):
             self.assertIn(expected_path, paths, f"endpoint path missing: {expected_path!r}")
 
@@ -578,12 +590,22 @@ class ApiHttpTests(unittest.IsolatedAsyncioTestCase):
         # SSE client must be present so the dashboard auto-updates.
         self.assertIn("EventSource", resp.text)
         # All GPS fields the dashboard is expected to display.
-        for field_id in ("f-state", "f-fix", "f-sats", "f-lat", "f-lon",
-                         "f-alt", "f-hdop", "f-spd", "f-utc"):
+        for field_id in (
+            "f-state",
+            "f-fix",
+            "f-sats",
+            "f-lat",
+            "f-lon",
+            "f-alt",
+            "f-hdop",
+            "f-spd",
+            "f-utc",
+        ):
             self.assertIn(field_id, resp.text, f"dashboard missing element: {field_id!r}")
 
 
 # ── Reporting ──────────────────────────────────────────────────────────────────
+
 
 class ReportingResult(unittest.TextTestResult):
     def addSuccess(self, test: unittest.TestCase) -> None:
