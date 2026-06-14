@@ -14,6 +14,10 @@
   <a href="https://wokwi.com/"><img src="https://img.shields.io/badge/Simulation-Wokwi-6C4AB6" alt="Wokwi"></a>
 </p>
 
+<p align="center">
+  <img src="docs/images/simulation/wokwi-states.gif" alt="Wokwi simulation states" width="800">
+</p>
+
 A self-contained GPS reference station for local test and measurement networks.
 An ESP32 validates and parses NMEA data, presents the current state on an OLED
 and LEDs, and streams structured JSON over USB. A Raspberry Pi stores the data
