@@ -16,8 +16,8 @@
 
 ## ESP32 pin assignments
 
-All firmware constants are in `PinConfig` and `GpsConfig` namespaces at the
-top of `gps_reference_module.ino`.
+All firmware constants are in `PinConfig` and `GpsConfig` namespaces in
+[`src/firmware_settings.h`](../firmware/gps_reference_module/src/firmware_settings.h).
 
 ```
 GPIO  Function          Direction  Wire colour (suggestion)

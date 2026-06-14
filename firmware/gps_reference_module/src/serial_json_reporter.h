@@ -1,3 +1,7 @@
+/**
+ * @file serial_json_reporter.h
+ * @brief USB serial JSON Lines output for the service layer.
+ */
 #pragma once
 
 #include <stdint.h>

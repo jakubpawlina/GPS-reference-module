@@ -1,3 +1,7 @@
+/**
+ * @file status_led_controller.cpp
+ * @brief GPIO control for the four status LEDs (error, data, warning, ok).
+ */
 #include "status_led_controller.h"
 
 #include <Arduino.h>

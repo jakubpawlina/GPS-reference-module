@@ -1,3 +1,7 @@
+/**
+ * @file firmware_settings.h
+ * @brief Centralized compile-time constants: pins, timing, thresholds, and identity.
+ */
 #pragma once
 
 #include <stddef.h>
@@ -96,10 +100,10 @@ constexpr size_t BUFFER_SIZE = 144;
 
 /**
  * When false, sentences without a '*XX' checksum field are accepted.
- * Useful during bench testing with a terminal emulator.  Set true for
- * production deployments to reject noise from an electrically noisy link.
+ * Override to false during bench testing with a terminal emulator.
+ * Enabled by default so noisy UART lines do not inject garbage data.
  */
-constexpr bool REQUIRE_CHECKSUM = false;
+constexpr bool REQUIRE_CHECKSUM = true;
 } // namespace NmeaConfig
 
 /** @brief Output stream feature flags. */

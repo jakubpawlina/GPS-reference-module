@@ -32,6 +32,11 @@ CORS_ORIGINS: list[str] = [
     o.strip() for o in os.getenv("GPS_CORS_ORIGINS", "*").split(",") if o.strip()
 ]
 
+# Authentication — optional Bearer token for write endpoints.  When set,
+# mutating operations (POST /api/upload) require an
+# ``Authorization: Bearer <token>`` header.  Read-only endpoints remain open.
+API_KEY: str = os.getenv("GPS_API_KEY", "")
+
 # Cloud upload - optional POST target for /api/upload
 CLOUD_WEBHOOK: str = os.getenv("GPS_CLOUD_WEBHOOK", "")
 

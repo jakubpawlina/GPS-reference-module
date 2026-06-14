@@ -1,3 +1,7 @@
+/**
+ * @file status_presentation.h
+ * @brief OLED and LED presentation models derived from GPS state.
+ */
 #pragma once
 
 #include "gps_processing.h"

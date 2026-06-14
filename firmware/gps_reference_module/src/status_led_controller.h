@@ -1,3 +1,7 @@
+/**
+ * @file status_led_controller.h
+ * @brief GPIO LED driver for the four status indicators.
+ */
 #pragma once
 
 #include "status_presentation.h"

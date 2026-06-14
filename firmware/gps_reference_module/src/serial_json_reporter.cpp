@@ -1,3 +1,15 @@
+/**
+ * @file serial_json_reporter.cpp
+ * @brief USB JSON Lines output for the Raspberry Pi service.
+ *
+ * Emits three message types over USB serial as single-line JSON objects:
+ * - **startup** — sent once at boot with firmware version and hardware state.
+ * - **raw_nmea** — each NMEA sentence with checksum status and type tag.
+ * - **parsed_state** — periodic snapshot of all GPS fields and diagnostics.
+ *
+ * All strings are JSON-escaped per RFC 8259.  Output uses the Arduino F()
+ * macro to keep string literals in flash rather than RAM.
+ */
 #include "serial_json_reporter.h"
 
 #include <Arduino.h>
@@ -8,6 +20,7 @@ namespace SerialJsonReporter {
 
 namespace {
 
+/** @brief Write a JSON-escaped string (with surrounding quotes) to Serial. */
 void printJsonEscapedString(const char *value) {
   Serial.print(F("\""));
 
@@ -54,6 +67,7 @@ void printJsonEscapedString(const char *value) {
   Serial.print(F("\""));
 }
 
+/** @brief Write a JSON string if valid, otherwise write `null`. */
 void printJsonStringOrNull(bool valid, const char *value) {
   if (valid && value && value[0]) {
     printJsonEscapedString(value);
@@ -62,6 +76,7 @@ void printJsonStringOrNull(bool valid, const char *value) {
   }
 }
 
+/** @brief Write a JSON number with fixed decimals if valid, otherwise `null`. */
 void printJsonNumberOrNull(bool valid, double value, uint8_t decimals) {
   if (valid) {
     Serial.print(value, decimals);
@@ -70,6 +85,7 @@ void printJsonNumberOrNull(bool valid, double value, uint8_t decimals) {
   }
 }
 
+/** @brief Write a millisecond age value if valid, otherwise `null`. */
 void printJsonAgeOrNull(bool valid, uint32_t ageMs) {
   if (valid) {
     Serial.print(static_cast<unsigned long>(ageMs));

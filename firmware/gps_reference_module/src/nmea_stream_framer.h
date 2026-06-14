@@ -1,3 +1,7 @@
+/**
+ * @file nmea_stream_framer.h
+ * @brief Stateful byte-stream to NMEA sentence framer.
+ */
 #pragma once
 
 #include <stddef.h>

@@ -7,6 +7,8 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." >/dev/null 2>&1 && pwd -P)"
 started_ms="$(tasklog_now_ms)"
 
 "$ROOT/tools/run-tests.sh" all
+"$ROOT/tools/run-format.sh" --check
+"$ROOT/tools/run-lint.sh"
 "$ROOT/tools/build-wokwi-project.sh"
 
 finished_ms="$(tasklog_now_ms)"

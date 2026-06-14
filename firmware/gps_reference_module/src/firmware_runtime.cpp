@@ -1,3 +1,12 @@
+/**
+ * @file firmware_runtime.cpp
+ * @brief Top-level firmware orchestration for setup and main loop.
+ *
+ * Wires together all subsystems: GPS serial reading, NMEA framing and
+ * parsing, OLED display refresh, LED updates, and periodic USB JSON
+ * reporting.  The firmware runs single-threaded in the Arduino loop()
+ * model — all state is local to this translation unit.
+ */
 #include "firmware_runtime.h"
 
 #include <Arduino.h>
@@ -53,7 +62,9 @@ void readGpsSerial() {
       processNmeaSentence(state.nmeaSentence);
       break;
     case NmeaStreamFramer::FeedResult::Overflow:
-      state.gps.bufferOverflowCount++;
+      if (state.gps.bufferOverflowCount < UINT32_MAX) {
+        state.gps.bufferOverflowCount++;
+      }
       break;
     case NmeaStreamFramer::FeedResult::None:
       break;

@@ -85,6 +85,8 @@ All settings are environment variables. Edit the systemd override file:
 | `GPS_MAX_DB_BYTES` | `4294967296` | Storage cap in bytes (default 4 GB) |
 | `GPS_HTTP_HOST` | `0.0.0.0` | Listen address for the HTTP server |
 | `GPS_HTTP_PORT` | `8000` | Listen port |
+| `GPS_CORS_ORIGINS` | `*` | Comma-separated list of allowed CORS origins |
+| `GPS_API_KEY` | _(empty)_ | Optional Bearer token for `/api/*` endpoints (see [API key authentication](#api-key-authentication)) |
 | `GPS_CLOUD_WEBHOOK` | _(empty)_ | Administrator-controlled HTTP(S) destination for `POST /api/upload` |
 
 After editing, reload and restart:
@@ -149,6 +151,84 @@ scp service/*.py pi@<rpi-ip>:~/gps-reference/
 # On the RPi
 sudo cp ~/gps-reference/*.py /opt/gps-reference/
 sudo systemctl restart gps-reference
+```
+
+---
+
+## Security hardening
+
+> [!WARNING]
+> The HTTP API binds to `0.0.0.0` by default with no authentication.
+> Enable API key authentication or deploy behind a reverse proxy on
+> non-trusted networks.
+
+### API key authentication
+
+Set `GPS_API_KEY` to require a Bearer token on write endpoints
+(`POST /api/upload`). All read-only endpoints (status, stream, records,
+stats) and the dashboard remain open.
+
+```ini
+# /etc/systemd/system/gps-reference.service.d/local.conf
+[Service]
+Environment=GPS_API_KEY=your-secret-token-here
+```
+
+Clients must include the token in every request:
+
+```bash
+curl -H "Authorization: Bearer your-secret-token-here" http://<rpi-ip>:8000/api/status
+```
+
+### Reverse proxy with nginx
+
+Install nginx and create a site configuration:
+
+```nginx
+# /etc/nginx/sites-available/gps-reference
+server {
+    listen 443 ssl;
+    server_name gps.example.lan;
+
+    ssl_certificate     /etc/ssl/certs/gps-reference.pem;
+    ssl_certificate_key /etc/ssl/private/gps-reference.key;
+
+    # Basic authentication
+    auth_basic           "GPS Reference";
+    auth_basic_user_file /etc/nginx/.htpasswd;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    # SSE requires unbuffered proxying
+    location /api/stream {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_buffering off;
+        proxy_cache off;
+    }
+}
+```
+
+Then bind the service to localhost only:
+
+```ini
+# /etc/systemd/system/gps-reference.service.d/local.conf
+[Service]
+Environment=GPS_HTTP_HOST=127.0.0.1
+```
+
+### Firewall
+
+If a reverse proxy is not practical, restrict access at the firewall level:
+
+```bash
+sudo ufw allow from 192.168.1.0/24 to any port 8000 proto tcp
+sudo ufw deny 8000
+sudo ufw enable
 ```
 
 ---

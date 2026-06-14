@@ -1,3 +1,11 @@
+/**
+ * @file status_presentation.cpp
+ * @brief Presentation-layer transforms for OLED display rows and LED patterns.
+ *
+ * Converts raw GpsData and GpsValiditySnapshot into formatted strings
+ * (DisplayModel) and boolean LED states (LedPattern).  All formatting
+ * decisions live here so the hardware modules stay policy-free.
+ */
 #include "status_presentation.h"
 
 #include <cstdio>
@@ -15,6 +23,7 @@ LedPattern buildLedPattern(const GpsProcessing::GpsValiditySnapshot &snapshot) {
   return pattern;
 }
 
+/** @brief Format the NMEA data age as a human-readable string (e.g. "<1s", "STALE"). */
 static void formatDisplayAge(const GpsProcessing::GpsData &gps,
                              const GpsProcessing::GpsValiditySnapshot &snapshot, char *buffer,
                              size_t bufferSize) {

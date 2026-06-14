@@ -1,8 +1,9 @@
 [tools]
 python = "3.13"
 "aqua:arduino/arduino-cli" = "1.4.1"
-"aqua:astral-sh/ruff" = "latest"
+"aqua:astral-sh/ruff" = "0.15.17"
 "aqua:mvdan/sh" = "latest"
+"aqua:koalaman/shellcheck" = "0.11.0"
 
 # Doxygen is not available through mise's aqua registry as aqua:doxygen/doxygen.
 # Install it separately with:
@@ -26,7 +27,7 @@ run = "./tools/setup-service-environment.sh"
 
 [tasks."service:dev"]
 description = "Develop: run the service locally with fake GPS data (no hardware needed)"
-run = ".venv/bin/python tools/run-service-dev.py"
+run = "trap '' INT; exec .venv/bin/python tools/run-service-dev.py"
 
 [tasks."docs:generate"]
 description = "Docs: generate firmware API documentation"
@@ -34,7 +35,7 @@ run = "./tools/run-firmware-checks.sh docs"
 
 [tasks."docs:serve"]
 description = "Docs: generate and serve firmware API documentation"
-run = "./tools/serve-firmware-docs.sh"
+run = "trap '' INT; exec python3 tools/serve-firmware-docs.py"
 
 [tasks."deploy:install"]
 description = "Deploy: install or upgrade the Raspberry Pi service"
@@ -87,3 +88,7 @@ run = "./tools/run-format.sh --check"
 [tasks.lint]
 description = "Lint: static analysis for Python (ruff check) and shell (shfmt)"
 run = "./tools/run-lint.sh"
+
+[tasks."lint:fix"]
+description = "Lint: auto-fix Python issues (ruff check --fix)"
+run = "./tools/run-lint.sh --fix"

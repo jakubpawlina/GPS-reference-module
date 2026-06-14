@@ -1,0 +1,42 @@
+Copyright (c) 2026 Jakub Pawlina
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, and/or sublicense the
+Software, subject to the following conditions:
+
+1. The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+2. INTERNAL USE: Any individual, organization, or company may use, modify,
+   and deploy this Software for internal purposes free of charge, provided
+   that such use does not involve selling or commercially distributing a
+   product or service based on this Software to third parties.
+
+3. COMMERCIAL DISTRIBUTION RESTRICTION: You may not sell, license for a fee,
+   or otherwise commercially distribute any product or service — including
+   hardware, firmware, or software — that incorporates, is derived from, or
+   substantially relies on this Software or any portion thereof, without
+   obtaining a commercial license from the copyright holder.
+
+   This restriction applies regardless of whether this Software is used in
+   whole or in part, modified or unmodified, as a direct component or as a
+   dependency.
+
+   Commercial licensing is available and may be granted free of charge or
+   subject to a fee at the copyright holder's discretion.
+
+   For commercial licensing inquiries, contact: jakub@jakubpawlina.com
+
+4. NON-COMMERCIAL DISTRIBUTION: Sharing, publishing, or distributing this
+   Software or derivative works for non-commercial purposes is permitted
+   free of charge, provided this license is included in full.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

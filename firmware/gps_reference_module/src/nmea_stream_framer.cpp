@@ -1,3 +1,11 @@
+/**
+ * @file nmea_stream_framer.cpp
+ * @brief Byte-level UART stream framing for NMEA 0183 sentences.
+ *
+ * Extracts '$'-delimited, newline-terminated lines from a raw byte stream.
+ * Handles mid-stream restarts (a new '$' resets the accumulator), CR/LF
+ * line endings, and buffer overflows without heap allocation.
+ */
 #include "nmea_stream_framer.h"
 
 #include <string.h>

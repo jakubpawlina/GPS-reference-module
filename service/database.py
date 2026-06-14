@@ -30,6 +30,7 @@ the connection; close() is called from the FastAPI lifespan shutdown.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -65,6 +66,7 @@ CREATE INDEX IF NOT EXISTS idx_positions_ts ON positions (ts);
 """
 
 _db: aiosqlite.Connection | None = None
+_write_lock: asyncio.Lock = asyncio.Lock()
 
 
 async def _conn() -> aiosqlite.Connection:
@@ -81,7 +83,23 @@ async def init() -> None:
     _db.row_factory = aiosqlite.Row
     await _db.execute("PRAGMA journal_mode = WAL")
     await _db.execute("PRAGMA synchronous = NORMAL")
-    await _db.execute("PRAGMA auto_vacuum = INCREMENTAL")
+
+    async with _db.execute("PRAGMA auto_vacuum") as cur:
+        row = await cur.fetchone()
+        current_mode = row[0] if row else 0
+    if current_mode == 0:
+        # auto_vacuum can only be changed on an empty/new database; apply and
+        # VACUUM once so incremental reclamation works on future deletes.
+        await _db.execute("PRAGMA auto_vacuum = INCREMENTAL")
+        await _db.execute("VACUUM")
+        log.info("Enabled incremental auto_vacuum on new database")
+    elif current_mode != 2:
+        log.warning(
+            "Database auto_vacuum mode is %d (expected 2=INCREMENTAL); "
+            "storage cleanup may not reclaim disk space",
+            current_mode,
+        )
+
     await _db.executescript(_DDL)
     await _db.commit()
     log.info("Database ready: %s", config.DB_PATH)
@@ -96,47 +114,48 @@ async def close() -> None:
 
 async def insert(record: dict) -> int:
     """Persist one parsed_state record.  Returns the new row id."""
-    db = await _conn()
-    cur = await db.execute(
-        """
-        INSERT INTO positions
-            (ts, state, valid, fix, fix_type, satellites,
-             lat, lon, alt_m, hdop, pdop, vdop,
-             speed_kmh, utc_time, utc_date, raw_json)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-        """,
-        (
-            time.time(),
-            record.get("state"),
-            1 if record.get("valid") else 0,
-            1 if record.get("fix") else 0,
-            record.get("fixType"),
-            record.get("satellitesUsed"),
-            record.get("latitude"),
-            record.get("longitude"),
-            record.get("altitudeM"),
-            record.get("hdop"),
-            record.get("pdop"),
-            record.get("vdop"),
-            record.get("speedKmh"),
-            record.get("utcTime"),
-            record.get("utcDate"),
-            json.dumps(record),
-        ),
-    )
-    row_id = cur.lastrowid
-    await db.commit()
+    async with _write_lock:
+        db = await _conn()
+        cur = await db.execute(
+            """
+            INSERT INTO positions
+                (ts, state, valid, fix, fix_type, satellites,
+                 lat, lon, alt_m, hdop, pdop, vdop,
+                 speed_kmh, utc_time, utc_date, raw_json)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                time.time(),
+                record.get("state"),
+                1 if record.get("valid") else 0,
+                1 if record.get("fix") else 0,
+                record.get("fixType"),
+                record.get("satellitesUsed"),
+                record.get("latitude"),
+                record.get("longitude"),
+                record.get("altitudeM"),
+                record.get("hdop"),
+                record.get("pdop"),
+                record.get("vdop"),
+                record.get("speedKmh"),
+                record.get("utcTime"),
+                record.get("utcDate"),
+                json.dumps(record),
+            ),
+        )
+        row_id = cur.lastrowid
+        await db.commit()
 
-    if row_id is None:
-        raise RuntimeError("SQLite did not return an id for the inserted position")
+        if row_id is None:
+            raise RuntimeError("SQLite did not return an id for the inserted position")
 
-    try:
-        await _cleanup_if_needed()
-    except Exception:
-        # Cleanup failures (e.g. VACUUM on a locked DB) must not interrupt
-        # the serial reader loop - log and continue.
-        log.exception("Storage cleanup failed; continuing without cleanup")
-    return row_id
+        try:
+            await _cleanup_if_needed()
+        except Exception:
+            # Cleanup failures (e.g. VACUUM on a locked DB) must not interrupt
+            # the serial reader loop - log and continue.
+            log.exception("Storage cleanup failed; continuing without cleanup")
+        return row_id
 
 
 def _storage_size_bytes() -> int:

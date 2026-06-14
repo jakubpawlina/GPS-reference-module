@@ -24,10 +24,16 @@ jobs:
       - name: Set up service environment
         run: ./tools/setup-service-environment.sh
 
+      - name: Bootstrap firmware toolchain
+        run: mise run firmware:bootstrap
+
       - name: Run all tests
         run: ./tools/run-tests.sh all
         env:
           FORCE_COLOR: "1"
+
+      - name: Compile firmware
+        run: mise run firmware:compile
 
       - name: Check formatting
         run: ./tools/run-format.sh --check

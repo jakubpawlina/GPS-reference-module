@@ -1,3 +1,7 @@
+/**
+ * @file oled_display.h
+ * @brief SSD1306 OLED display driver interface.
+ */
 #pragma once
 
 #include <stdint.h>

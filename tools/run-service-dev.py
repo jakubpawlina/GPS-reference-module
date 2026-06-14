@@ -52,12 +52,21 @@ if sys.prefix != str(ROOT / ".venv"):
 
 # ── Remaining imports (safe: we are now inside the venv) ──────────────────────
 
+import asyncio
+import contextlib
 import json
+import logging
 import math
 import pty
+import signal
 import tempfile
 import threading
 import time
+
+# When launched via `trap '' INT; exec ...`, SIGINT is inherited as SIG_IGN
+# (preserved across the os.execv venv re-exec above).  Re-enable it here
+# so KeyboardInterrupt works normally for uvicorn shutdown.
+signal.signal(signal.SIGINT, signal.default_int_handler)
 
 # ── Argument parsing ───────────────────────────────────────────────────────────
 
@@ -219,12 +228,50 @@ def main() -> None:
 
     threading.Thread(target=_writer, args=(_master_fd,), daemon=True).start()
 
+    # Suppress CancelledError tracebacks that uvicorn/starlette log during
+    # shutdown — they are expected when the graceful timeout expires.
+    class _SuppressCancelledError(logging.Filter):
+        def filter(self, record: logging.LogRecord) -> bool:
+            return "CancelledError" not in record.getMessage()
+
+    logging.getLogger("uvicorn.error").addFilter(_SuppressCancelledError())
+
+    async def _serve() -> None:
+        cfg = uvicorn.Config(
+            app,
+            host="127.0.0.1",
+            port=_http_port,
+            log_level="info",
+            timeout_graceful_shutdown=1,
+        )
+        server = uvicorn.Server(cfg)
+
+        # Replace uvicorn's capture_signals so it doesn't re-raise SIGINT
+        # after shutdown — that re-raise causes cascading tracebacks through
+        # asyncio and starlette that are pure noise for a dev server.
+        @contextlib.contextmanager
+        def _clean_shutdown():
+            original = {}
+            for sig in (signal.SIGINT, signal.SIGTERM):
+                original[sig] = signal.getsignal(sig)
+                signal.signal(sig, server.handle_exit)
+            try:
+                yield
+            finally:
+                for sig, handler in original.items():
+                    signal.signal(sig, handler)
+
+        server.capture_signals = _clean_shutdown
+        await server.serve()
+
     try:
-        uvicorn.run(app, host="127.0.0.1", port=_http_port, log_level="info")
-    except KeyboardInterrupt:
-        pass  # uvicorn handles SIGINT and re-raises; absorb it for a clean exit
+        asyncio.run(_serve())
+    except (KeyboardInterrupt, SystemExit):
+        pass
     finally:
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
         _cleanup()
+        print()
 
 
 if __name__ == "__main__":

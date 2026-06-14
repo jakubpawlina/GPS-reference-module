@@ -49,10 +49,12 @@
 
 namespace GpsProcessing {
 
+/** @brief Unsigned elapsed time in milliseconds (rollover-safe). */
 static uint32_t elapsedMs(uint32_t nowMs, uint32_t timestampMs) {
   return nowMs - timestampMs;
 }
 
+/** @brief Return true if @p timestampMs is within the timeout window. */
 static bool isRecent(uint32_t nowMs, uint32_t timestampMs, uint32_t gpsDataTimeoutMs) {
   if (timestampMs == 0) {
     return false;
@@ -61,10 +63,12 @@ static bool isRecent(uint32_t nowMs, uint32_t timestampMs, uint32_t gpsDataTimeo
   return elapsedMs(nowMs, timestampMs) <= gpsDataTimeoutMs;
 }
 
+/** @brief Check if a character is a hexadecimal digit (0-9, A-F, a-f). */
 static bool isHexDigit(char c) {
   return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');
 }
 
+/** @brief Return true if @p text ends with @p suffix. */
 static bool endsWith(const char *text, const char *suffix) {
   if (!text || !suffix) {
     return false;
@@ -110,6 +114,7 @@ bool verifyNmeaChecksum(const char *sentence, bool requireChecksum) {
   return calculated == expected;
 }
 
+/** @brief Split a comma-separated string in place, returning pointers to each field. */
 static int splitCsv(char *text, char *fields[], int maxFields) {
   if (!text || !fields || maxFields <= 0) {
     return 0;
@@ -128,6 +133,14 @@ static int splitCsv(char *text, char *fields[], int maxFields) {
   return count;
 }
 
+/**
+ * @brief Parse an NMEA coordinate (DDDMM.MMMM) and hemisphere into decimal degrees.
+ * @param[in]  coordinate  Raw NMEA coordinate string.
+ * @param[in]  hemisphere  Single-character hemisphere indicator (N/S/E/W).
+ * @param[in]  latitude    True for latitude (max 90), false for longitude (max 180).
+ * @param[out] result      Decimal degrees on success; negative for S/W.
+ * @return True if the coordinate was parsed successfully.
+ */
 static bool parseCoordinate(const char *coordinate, const char *hemisphere, bool latitude,
                             double &result) {
   if (!coordinate || !coordinate[0] || !hemisphere || !hemisphere[0]) {
@@ -170,6 +183,7 @@ static bool parseCoordinate(const char *coordinate, const char *hemisphere, bool
   return true;
 }
 
+/** @brief Safe string copy with null termination; clears destination if source is empty. */
 static void copyTextField(char *destination, size_t destinationSize, const char *source) {
   if (!destination || destinationSize == 0) {
     return;
@@ -184,11 +198,13 @@ static void copyTextField(char *destination, size_t destinationSize, const char 
   destination[destinationSize - 1] = '\0';
 }
 
+/** @brief Clear both fix and location validity flags. */
 static void markPositionInvalid(GpsData &gps) {
   gps.hasFix = false;
   gps.locationValid = false;
 }
 
+/** @brief Map a talker+sentence ID suffix to the internal enum. */
 static NmeaSentenceType getSentenceType(const char *sentenceId) {
   if (endsWith(sentenceId, "GGA")) {
     return NmeaSentenceType::Gga;
@@ -242,6 +258,7 @@ NmeaSentenceType detectSentenceTypeFromRaw(const char *sentence) {
   return getSentenceType(sentenceId);
 }
 
+/** @brief Extract fix, satellites, coordinates, altitude, and HDOP from a GGA sentence. */
 static void parseGga(GpsData &gps, char *fields[], int count, uint32_t nowMs) {
   if (count < 8) {
     return;
@@ -294,6 +311,7 @@ static void parseGga(GpsData &gps, char *fields[], int count, uint32_t nowMs) {
   }
 }
 
+/** @brief Extract fix type (2D/3D) and DOP values from a GSA sentence. */
 static void parseGsa(GpsData &gps, char *fields[], int count, uint32_t nowMs) {
   if (count < 3) {
     return;
@@ -332,6 +350,7 @@ static void parseGsa(GpsData &gps, char *fields[], int count, uint32_t nowMs) {
   }
 }
 
+/** @brief Extract position, speed, course, and date from an RMC sentence. */
 static void parseRmc(GpsData &gps, char *fields[], int count, uint32_t nowMs) {
   if (count < 7) {
     return;
@@ -388,13 +407,20 @@ static void parseRmc(GpsData &gps, char *fields[], int count, uint32_t nowMs) {
   }
 }
 
+/** @brief Increment a counter with saturation at UINT32_MAX. */
+static void saturatingIncrement(uint32_t &counter) {
+  if (counter < UINT32_MAX) {
+    counter++;
+  }
+}
+
 void processNmeaSentence(GpsData &gps, const char *sentence, uint32_t nowMs, bool requireChecksum,
                          bool checksumAlreadyVerified) {
-  gps.rawSentenceCount++;
+  saturatingIncrement(gps.rawSentenceCount);
 
   const bool checksumOk = checksumAlreadyVerified || verifyNmeaChecksum(sentence, requireChecksum);
   if (!checksumOk) {
-    gps.checksumErrorCount++;
+    saturatingIncrement(gps.checksumErrorCount);
     return;
   }
 
@@ -426,7 +452,7 @@ void processNmeaSentence(GpsData &gps, const char *sentence, uint32_t nowMs, boo
 
   gps.nmeaValid = true;
   gps.lastNmeaMs = nowMs;
-  gps.acceptedSentenceCount++;
+  saturatingIncrement(gps.acceptedSentenceCount);
 
   switch (sentenceType) {
   case NmeaSentenceType::Gga:
@@ -443,6 +469,7 @@ void processNmeaSentence(GpsData &gps, const char *sentence, uint32_t nowMs, boo
   }
 }
 
+/** @brief Classify the current GPS health from snapshot freshness and satellite count. */
 static DiagnosticState calculateDiagnosticState(const GpsValiditySnapshot &snapshot,
                                                 const GpsData &gps, uint8_t minOkSatellites) {
   if (!snapshot.freshNmea) {

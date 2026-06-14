@@ -15,6 +15,8 @@ CHIP_TEST_BIN="$RUN_DIR/test_wokwi_gps_chip"
 SERVICE_PYTHON="$ROOT/.venv/bin/python"
 
 readonly C_WARNINGS=(-Wall -Wextra -Werror -pedantic)
+# The comma is part of the gcc flag, not an array separator.
+# shellcheck disable=SC2054
 readonly CXX_SANITIZERS=(-fsanitize=address,undefined -fno-omit-frame-pointer)
 
 SUITE_NAME=""

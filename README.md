@@ -52,6 +52,37 @@ that updates in real time via Server-Sent Events.
        width="800">
 </p>
 
+### Swagger UI
+
+Auto-generated interactive API explorer at `/docs` with try-it-out support.
+
+<p align="center">
+  <img src="docs/images/service/swagger-ui-overview.png"
+       alt="Swagger UI showing all API endpoints grouped by Live, Storage, Records, and Cloud"
+       width="800">
+</p>
+
+### ReDoc
+
+Three-panel API reference at `/redoc` with response schemas and examples.
+
+<p align="center">
+  <img src="docs/images/service/redoc-api-status.png"
+       alt="ReDoc showing GET /api/status endpoint with JSON response sample"
+       width="800">
+</p>
+
+### Firmware API documentation
+
+Generated Doxygen documentation with architecture overview, module reference,
+and browsable source code (`mise run docs:serve`).
+
+<p align="center">
+  <img src="docs/images/firmware/doxygen-main-page.png"
+       alt="Doxygen main page showing firmware architecture, module table, and data flow"
+       width="800">
+</p>
+
 ### Wokwi simulation
 
 The Wokwi project runs the production ESP32 firmware with a simulated NEO-M8N
@@ -195,8 +226,9 @@ service. A logout or reboot may be required when the user is first added to the
 `dialout` group.
 
 > [!IMPORTANT]
-> The HTTP API has no authentication and permits cross-origin requests. Deploy
-> it only on a trusted network or behind an authenticated reverse proxy.
+> The HTTP API has no authentication by default. Set `GPS_API_KEY` to require a
+> Bearer token on write endpoints (`/api/upload`), or deploy behind an
+> authenticated reverse proxy. See [Security hardening](docs/deploy.md#security-hardening).
 
 #### 5. Verify the system
 
@@ -283,6 +315,7 @@ Environment=GPS_BAUD_RATE=115200
 Environment=GPS_DB_PATH=/var/lib/gps-reference/data.db
 Environment=GPS_MAX_DB_BYTES=4294967296
 Environment=GPS_HTTP_PORT=8000
+# Environment=GPS_API_KEY=your-secret-token
 # Environment=GPS_CLOUD_WEBHOOK=https://example.com/ingest
 ```
 
@@ -293,6 +326,7 @@ Environment=GPS_HTTP_PORT=8000
 | `GPS_DB_PATH` | `/var/lib/gps-reference/data.db` | SQLite database |
 | `GPS_MAX_DB_BYTES` | `4294967296` | Maximum database size, default 4 GiB |
 | `GPS_HTTP_PORT` | `8000` | HTTP server port |
+| `GPS_API_KEY` | Empty | Optional Bearer token for write endpoints (`/api/upload`) |
 | `GPS_CLOUD_WEBHOOK` | Empty | Optional upload destination |
 
 After changing the configuration:
@@ -392,9 +426,8 @@ Do not publish credentials, private network details, or unredacted production
 data.
 
 > [!WARNING]
-> For a potential security vulnerability, avoid posting exploit details in a
-> public issue. Contact the repository owner privately through their GitHub
-> profile until a dedicated security policy is available.
+> For a potential security vulnerability, do not open a public issue. Follow
+> the reporting process in [SECURITY.md](SECURITY.md).
 
 ### Repository Layout
 

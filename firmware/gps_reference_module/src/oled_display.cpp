@@ -1,3 +1,12 @@
+/**
+ * @file oled_display.cpp
+ * @brief SSD1306 OLED rendering and I2C bus probing.
+ *
+ * Drives a 128x64 monochrome OLED over I2C.  The display shows eight
+ * label:value rows covering diagnostic state, fix info, coordinates,
+ * altitude, HDOP, and data age.  The I2C address is auto-detected at
+ * startup from the two standard SSD1306 addresses (0x3C, 0x3D).
+ */
 #include "oled_display.h"
 
 #include <Arduino.h>
@@ -9,6 +18,7 @@ namespace OledDisplay {
 
 namespace {
 
+/** @brief Render one label:value row at the given vertical position. */
 void drawDisplayRow(Adafruit_SSD1306 &display, uint8_t row, const char *label, const char *value) {
   constexpr int labelX = 0;
   constexpr int colonX = 36;
@@ -27,6 +37,7 @@ void drawDisplayRow(Adafruit_SSD1306 &display, uint8_t row, const char *label, c
   display.print(value);
 }
 
+/** @brief Show the initial placeholder screen while waiting for GPS data. */
 void renderBootScreen(Adafruit_SSD1306 &display) {
   display.clearDisplay();
   display.setTextSize(1);

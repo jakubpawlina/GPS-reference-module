@@ -89,7 +89,7 @@ All tunable values are centralized in
 | `UsbConfig` | `BAUD_RATE` | 115200 | USB serial output baud rate |
 | `TimingConfig` | `GPS_DATA_TIMEOUT_MS` | 1800 | Milliseconds before a sentence is considered stale |
 | `TimingConfig` | `DISPLAY_REFRESH_MS` | 1000 | Display update interval |
-| `NmeaConfig` | `REQUIRE_CHECKSUM` | false | Set to `true` to reject sentences without a checksum |
+| `NmeaConfig` | `REQUIRE_CHECKSUM` | true | Reject sentences without a valid checksum (disable for bench testing) |
 | `DisplayConfig` | `I2C_ADDRESS` | 0x3C | Primary OLED I2C address |
 | `DisplayConfig` | `I2C_ADDRESS_ALT` | 0x3D | Fallback address (auto-detected at boot) |
 
@@ -103,7 +103,7 @@ All tunable values are centralized in
 | `DEGRADED_LOW_SAT` | `LOW SAT` | blue + yellow | Fix but <6 satellites, or GGA stale |
 | `DEGRADED_2D` | `WARN 2D` | blue + yellow | 2D fix only (no altitude) |
 | `NO_FIX` | `NO FIX` | red + blue | NMEA arriving but no position fix |
-| `NO_DATA` | `NO DATA` | red only | No NMEA received within timeout |
+| `NO_GPS_DATA` | `NO DATA` | red only | No NMEA received within timeout |
 
 ---
 

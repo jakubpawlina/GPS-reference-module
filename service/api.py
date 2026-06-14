@@ -17,7 +17,11 @@ GET  /redoc                     ReDoc (auto-generated)
 from __future__ import annotations
 
 import asyncio
+import hmac
+import ipaddress
 import json
+import logging
+import socket
 import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -30,6 +34,83 @@ import reader
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from pydantic import BaseModel, Field
+
+log = logging.getLogger("api")
+
+# ── Response models ───────────────────────────────────────────────────────────
+
+
+class GpsStatus(BaseModel):
+    """Current GPS state as received from the ESP32."""
+
+    type: str = Field("parsed_state", examples=["parsed_state"])
+    millis: int | None = Field(None, examples=[123456])
+    state: str | None = Field(None, examples=["REFERENCE_OK"])
+    valid: bool | None = Field(None, examples=[True])
+    gpsData: bool | None = Field(None, examples=[True])
+    displayReady: bool | None = Field(None, examples=[True])
+    fix: bool | None = Field(None, examples=[True])
+    fixType: str | None = Field(None, examples=["3D"])
+    fixQuality: int | None = Field(None, examples=[1])
+    satellitesUsed: int | None = Field(None, examples=[8])
+    latitude: float | None = Field(None, examples=[50.026651])
+    longitude: float | None = Field(None, examples=[19.953602])
+    altitudeM: float | None = Field(None, examples=[263.0])
+    hdop: float | None = Field(None, examples=[0.8])
+    pdop: float | None = Field(None, examples=[1.2])
+    vdop: float | None = Field(None, examples=[0.9])
+    speedKnots: float | None = Field(None, examples=[0.05])
+    speedKmh: float | None = Field(None, examples=[0.09])
+    courseDeg: float | None = Field(None, examples=[123.4])
+    utcTime: str | None = Field(None, examples=["120530.00"])
+    utcDate: str | None = Field(None, examples=["140626"])
+    nmeaAgeMs: int | None = Field(None, examples=[80])
+    ggaAgeMs: int | None = Field(None, examples=[80])
+    gsaAgeMs: int | None = Field(None, examples=[120])
+    rmcAgeMs: int | None = Field(None, examples=[90])
+    rawSentenceCount: int | None = Field(None, examples=[617])
+    acceptedSentenceCount: int | None = Field(None, examples=[494])
+    checksumErrorCount: int | None = Field(None, examples=[0])
+    bufferOverflowCount: int | None = Field(None, examples=[0])
+
+    model_config = {"extra": "allow"}
+
+
+class StorageStats(BaseModel):
+    """Database storage statistics."""
+
+    record_count: int = Field(..., examples=[8640])
+    oldest_ts: float | None = Field(None, examples=[1750000000.0])
+    newest_ts: float | None = Field(None, examples=[1750086400.0])
+    db_size_bytes: int = Field(..., examples=[4194304])
+    db_size_mb: float = Field(..., examples=[4.0])
+    max_size_mb: float = Field(..., examples=[4096.0])
+    usage_pct: float = Field(..., examples=[0.1])
+
+
+class RecordsSinceResponse(BaseModel):
+    """Cursor-based polling response."""
+
+    records: list[dict] = Field(..., description="List of position records.")
+    count: int = Field(..., examples=[100])
+    next_cursor: int = Field(..., examples=[100])
+
+
+class RecordsRangeResponse(BaseModel):
+    """Time-range query response."""
+
+    records: list[dict] = Field(..., description="List of position records.")
+    count: int = Field(..., examples=[100])
+
+
+class UploadResponse(BaseModel):
+    """Cloud upload result."""
+
+    uploaded: int = Field(..., examples=[100])
+    next_cursor: int = Field(..., examples=[100])
+    http_status: int | None = Field(None, examples=[200])
+
 
 # ── Lifespan ───────────────────────────────────────────────────────────────────
 
@@ -41,7 +122,14 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     try:
         yield
     finally:
-        await reader.stop()
+        try:
+            await reader.stop()
+        except asyncio.CancelledError:
+            reader.request_stop()
+            try:
+                await asyncio.sleep(1.0)
+            except asyncio.CancelledError:
+                pass
         await database.close()
 
 
@@ -65,18 +153,55 @@ app.add_middleware(
 )
 
 
+# ── Optional API key authentication ──────────────────────────────────────────
+
+_WRITE_PATHS = ("/api/upload",)
+
+
+@app.middleware("http")
+async def _api_key_middleware(request: Request, call_next):
+    """Require a Bearer token on write endpoints when GPS_API_KEY is configured.
+
+    Read-only endpoints (status, stream, records, stats) remain open so the
+    dashboard and passive consumers work without credentials.  Only mutating
+    operations (upload) are gated.
+    """
+    if not config.API_KEY:
+        return await call_next(request)
+
+    path = request.url.path
+    if not any(path.startswith(p) for p in _WRITE_PATHS):
+        return await call_next(request)
+
+    if request.method in ("GET", "HEAD", "OPTIONS"):
+        return await call_next(request)
+
+    auth = request.headers.get("authorization", "")
+    if hmac.compare_digest(auth, f"Bearer {config.API_KEY}"):
+        return await call_next(request)
+
+    return JSONResponse(status_code=401, content={"detail": "Invalid or missing API key"})
+
+
 # ── Live state ─────────────────────────────────────────────────────────────────
 
 
-@app.get("/api/status", summary="Current GPS state", tags=["Live"])
+@app.get(
+    "/api/status",
+    summary="Current GPS state",
+    tags=["Live"],
+    response_model=GpsStatus,
+    responses={503: {"description": "No data received yet - is the ESP32 connected?"}},
+)
 async def get_status():
     """
     Returns the most recent `parsed_state` record received from the ESP32.
     HTTP 503 if the serial reader has not yet received any data.
     """
-    if not reader.current_state:
+    state = reader.get_state()
+    if not state:
         raise HTTPException(503, detail="No data received yet - is the ESP32 connected?")
-    return reader.current_state
+    return state
 
 
 @app.get(
@@ -96,19 +221,24 @@ async def stream():
     async def _generate():
         last = None
         last_keepalive = asyncio.get_running_loop().time()
-        while True:
-            state = reader.current_state
-            now = asyncio.get_running_loop().time()
-            if state and state is not last:
-                last = state
-                yield f"data: {json.dumps(state)}\n\n"
-                last_keepalive = now
-            elif now - last_keepalive >= 15:
-                # SSE comment - keeps the connection alive through proxies that
-                # close idle connections after ~60 s of silence.
-                yield ": keepalive\n\n"
-                last_keepalive = now
-            await asyncio.sleep(1)
+        try:
+            while True:
+                state = reader.get_state()
+                now = asyncio.get_running_loop().time()
+                # Identity check: _set_state() replaces the dict reference on
+                # every update, so `is not` detects new data without deep comparison.
+                if state and state is not last:
+                    last = state
+                    yield f"data: {json.dumps(state)}\n\n"
+                    last_keepalive = now
+                elif now - last_keepalive >= 15:
+                    # SSE comment - keeps the connection alive through proxies that
+                    # close idle connections after ~60 s of silence.
+                    yield ": keepalive\n\n"
+                    last_keepalive = now
+                await asyncio.sleep(1)
+        except asyncio.CancelledError:
+            return
 
     return StreamingResponse(_generate(), media_type="text/event-stream")
 
@@ -116,7 +246,7 @@ async def stream():
 # ── Storage ────────────────────────────────────────────────────────────────────
 
 
-@app.get("/api/stats", summary="Storage statistics", tags=["Storage"])
+@app.get("/api/stats", summary="Storage statistics", tags=["Storage"], response_model=StorageStats)
 async def get_stats():
     """Record count, DB file size, oldest/newest timestamps, and usage percentage."""
     return await database.stats()
@@ -125,7 +255,12 @@ async def get_stats():
 # ── Records ────────────────────────────────────────────────────────────────────
 
 
-@app.get("/api/records/since", summary="Incremental poll (cursor-based)", tags=["Records"])
+@app.get(
+    "/api/records/since",
+    summary="Incremental poll (cursor-based)",
+    tags=["Records"],
+    response_model=RecordsSinceResponse,
+)
 async def get_since(
     cursor: int = Query(
         0,
@@ -151,7 +286,13 @@ async def get_since(
     return {"records": rows, "count": len(rows), "next_cursor": next_cursor}
 
 
-@app.get("/api/records/range", summary="Time-range query", tags=["Records"])
+@app.get(
+    "/api/records/range",
+    summary="Time-range query",
+    tags=["Records"],
+    response_model=RecordsRangeResponse,
+    responses={422: {"description": "ts_to must be greater than or equal to ts_from"}},
+)
 async def get_range(
     ts_from: float = Query(..., ge=0, description="Start of window, Unix timestamp (seconds)."),
     ts_to: float | None = Query(
@@ -176,7 +317,35 @@ async def get_range(
 # ── Cloud upload ───────────────────────────────────────────────────────────────
 
 
-@app.post("/api/upload", summary="Upload records to a cloud webhook", tags=["Cloud"])
+def _is_public_url(url: str) -> bool:
+    """Return True if the webhook hostname resolves to a public (non-private) address."""
+    hostname = urlparse(url).hostname
+    if not hostname:
+        return False
+    try:
+        addr_info = socket.getaddrinfo(hostname, None, proto=socket.IPPROTO_TCP)
+    except socket.gaierror:
+        return False
+    for _family, _type, _proto, _canonname, sockaddr in addr_info:
+        ip = ipaddress.ip_address(sockaddr[0])
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+            return False
+    return True
+
+
+@app.post(
+    "/api/upload",
+    summary="Upload records to a cloud webhook",
+    tags=["Cloud"],
+    response_model=UploadResponse,
+    responses={
+        400: {
+            "description": "No webhook configured, invalid URL, or URL resolves to a private address"
+        },
+        401: {"description": "Missing or invalid API key (when GPS_API_KEY is set)"},
+        502: {"description": "Webhook connection error or non-2xx response from the remote server"},
+    },
+)
 async def upload(
     since_cursor: int = Query(0, ge=0, description="Upload only records with id > this value."),
     limit: int = Query(10_000, ge=1, le=50_000, description="Max records per batch (max 50 000)."),
@@ -193,6 +362,10 @@ async def upload(
     parsed_url = urlparse(url)
     if parsed_url.scheme not in {"http", "https"} or not parsed_url.netloc:
         raise HTTPException(400, detail="Webhook URL must be an absolute HTTP or HTTPS URL")
+    if not _is_public_url(url):
+        raise HTTPException(
+            400, detail="Webhook URL must not resolve to a private or loopback address"
+        )
 
     rows = await database.since(since_cursor, limit)
     if not rows:
@@ -205,7 +378,8 @@ async def upload(
         async with httpx.AsyncClient(timeout=timeout) as client:
             resp = await client.post(url, json={"source": "gps-reference", "records": rows})
     except httpx.RequestError as exc:
-        raise HTTPException(502, detail=f"Webhook connection error: {exc}") from exc
+        log.warning("Webhook connection error: %s", exc)
+        raise HTTPException(502, detail="Webhook connection error") from exc
 
     try:
         resp.raise_for_status()
@@ -387,6 +561,16 @@ es.onerror = () => { document.getElementById('msg').textContent = 'Stream discon
 </html>"""
 
 
+_DASHBOARD_CSP = (
+    "default-src 'none'; "
+    "style-src 'unsafe-inline'; "
+    "script-src 'unsafe-inline'; "
+    "connect-src 'self'; "
+    "img-src 'none'; "
+    "frame-ancestors 'none'"
+)
+
+
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def dashboard():
-    return _DASHBOARD
+    return HTMLResponse(content=_DASHBOARD, headers={"Content-Security-Policy": _DASHBOARD_CSP})

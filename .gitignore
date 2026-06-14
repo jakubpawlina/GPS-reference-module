@@ -5,6 +5,7 @@ simulation/wokwi/
 __pycache__/
 tests/.build/
 firmware/gps_reference_module/build/
+.env
 
 .agents
 .codex

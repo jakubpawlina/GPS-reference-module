@@ -127,6 +127,35 @@ TEST_DESCRIPTIONS: dict[str, str] = {
     "test_dashboard_returns_html_page": (
         "GET / serves an HTML page containing the GPS dashboard and SSE client script."
     ),
+    # ── ApiKeyTests ──────────────────────────────────────────────────────────
+    "test_status_open_without_token": (
+        "GET /api/status remains accessible when API key is configured."
+    ),
+    "test_stats_open_without_token": (
+        "GET /api/stats remains accessible when API key is configured."
+    ),
+    "test_records_since_open_without_token": (
+        "GET /api/records/since remains accessible when API key is configured."
+    ),
+    "test_records_range_open_without_token": (
+        "GET /api/records/range remains accessible when API key is configured."
+    ),
+    "test_endpoints_open_without_token": (
+        "GET /api/endpoints remains accessible when API key is configured."
+    ),
+    "test_dashboard_open_without_token": ("GET / remains accessible when API key is configured."),
+    "test_upload_rejected_without_token": (
+        "POST /api/upload returns 401 when API key is configured but no token is provided."
+    ),
+    "test_upload_rejected_with_wrong_token": (
+        "POST /api/upload returns 401 when the provided Bearer token does not match."
+    ),
+    "test_upload_accepted_with_correct_token": (
+        "POST /api/upload succeeds when the correct Bearer token is provided."
+    ),
+    "test_upload_open_when_api_key_not_set": (
+        "POST /api/upload requires no token when GPS_API_KEY is empty."
+    ),
 }
 
 
@@ -208,14 +237,14 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
             config.CLOUD_WEBHOOK = original_webhook
 
     async def test_api_status_returns_503_before_first_message(self) -> None:
-        original_state = reader.current_state
+        original_state = reader.get_state()
         try:
-            reader.current_state = {}
+            reader._set_state({})
             with self.assertRaises(HTTPException) as ctx:
                 await api.get_status()
             self.assertEqual(ctx.exception.status_code, 503)
         finally:
-            reader.current_state = original_state
+            reader._set_state(original_state)
 
     async def test_database_close_is_idempotent(self) -> None:
         """Calling close() twice must not raise so shutdown paths are robust."""
@@ -303,7 +332,7 @@ class ApiHttpTests(unittest.IsolatedAsyncioTestCase):
 
     Each test creates a fresh in-memory database and makes real HTTP requests
     to the FastAPI app.  The ASGI lifespan is bypassed so no serial reader
-    task is started; reader.current_state is controlled directly per test.
+    task is started; reader state is controlled directly per test.
     """
 
     async def asyncSetUp(self) -> None:
@@ -311,11 +340,13 @@ class ApiHttpTests(unittest.IsolatedAsyncioTestCase):
         self._orig_db_path = config.DB_PATH
         self._orig_max_db_bytes = config.MAX_DB_BYTES
         self._orig_webhook = config.CLOUD_WEBHOOK
+        self._orig_api_key = config.API_KEY
         config.DB_PATH = str(Path(self.temp_dir.name) / "positions.db")
         config.MAX_DB_BYTES = 1024**3
         config.CLOUD_WEBHOOK = ""
+        config.API_KEY = ""
         await database.init()
-        reader.current_state = {}
+        reader._set_state({})
         self.client = AsyncClient(
             transport=ASGITransport(app=api.app),
             base_url="http://test",
@@ -327,13 +358,14 @@ class ApiHttpTests(unittest.IsolatedAsyncioTestCase):
         config.DB_PATH = self._orig_db_path
         config.MAX_DB_BYTES = self._orig_max_db_bytes
         config.CLOUD_WEBHOOK = self._orig_webhook
-        reader.current_state = {}
+        config.API_KEY = self._orig_api_key
+        reader._set_state({})
         self.temp_dir.cleanup()
 
     # ── /api/status ───────────────────────────────────────────────────────────
 
     async def test_status_200_with_live_state(self) -> None:
-        reader.current_state = _SAMPLE_STATE.copy()
+        reader._set_state(_SAMPLE_STATE.copy())
 
         resp = await self.client.get("/api/status")
 
@@ -346,7 +378,7 @@ class ApiHttpTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(body["satellitesUsed"], 8)
 
     async def test_status_503_without_data(self) -> None:
-        reader.current_state = {}
+        reader._set_state({})
 
         resp = await self.client.get("/api/status")
 
@@ -603,6 +635,115 @@ class ApiHttpTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn(field_id, resp.text, f"dashboard missing element: {field_id!r}")
 
 
+# ── API key authentication tests ──────────────────────────────────────────────
+
+
+class ApiKeyTests(unittest.IsolatedAsyncioTestCase):
+    """Verify the API key middleware protects write endpoints and leaves reads open."""
+
+    async def asyncSetUp(self) -> None:
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self._orig_db_path = config.DB_PATH
+        self._orig_max_db_bytes = config.MAX_DB_BYTES
+        self._orig_webhook = config.CLOUD_WEBHOOK
+        self._orig_api_key = config.API_KEY
+        config.DB_PATH = str(Path(self.temp_dir.name) / "positions.db")
+        config.MAX_DB_BYTES = 1024**3
+        config.CLOUD_WEBHOOK = ""
+        config.API_KEY = "test-secret-key"
+        await database.init()
+        reader._set_state(_SAMPLE_STATE.copy())
+        self.client = AsyncClient(
+            transport=ASGITransport(app=api.app),
+            base_url="http://test",
+        )
+
+    async def asyncTearDown(self) -> None:
+        await self.client.aclose()
+        await database.close()
+        config.DB_PATH = self._orig_db_path
+        config.MAX_DB_BYTES = self._orig_max_db_bytes
+        config.CLOUD_WEBHOOK = self._orig_webhook
+        config.API_KEY = self._orig_api_key
+        reader._set_state({})
+        self.temp_dir.cleanup()
+
+    # ── Read endpoints remain open with API key enabled ──────────────────────
+
+    async def test_status_open_without_token(self) -> None:
+        resp = await self.client.get("/api/status")
+        self.assertEqual(resp.status_code, 200)
+
+    async def test_stats_open_without_token(self) -> None:
+        resp = await self.client.get("/api/stats")
+        self.assertEqual(resp.status_code, 200)
+
+    async def test_records_since_open_without_token(self) -> None:
+        resp = await self.client.get("/api/records/since?cursor=0")
+        self.assertEqual(resp.status_code, 200)
+
+    async def test_records_range_open_without_token(self) -> None:
+        resp = await self.client.get("/api/records/range?ts_from=0")
+        self.assertEqual(resp.status_code, 200)
+
+    async def test_endpoints_open_without_token(self) -> None:
+        resp = await self.client.get("/api/endpoints")
+        self.assertEqual(resp.status_code, 200)
+
+    async def test_dashboard_open_without_token(self) -> None:
+        resp = await self.client.get("/")
+        self.assertEqual(resp.status_code, 200)
+
+    # ── Write endpoint requires valid token ──────────────────────────────────
+
+    async def test_upload_rejected_without_token(self) -> None:
+        config.CLOUD_WEBHOOK = "https://example.com/webhook"
+        resp = await self.client.post("/api/upload?since_cursor=0")
+        self.assertEqual(resp.status_code, 401)
+        self.assertIn("API key", resp.json()["detail"])
+
+    async def test_upload_rejected_with_wrong_token(self) -> None:
+        config.CLOUD_WEBHOOK = "https://example.com/webhook"
+        resp = await self.client.post(
+            "/api/upload?since_cursor=0",
+            headers={"Authorization": "Bearer wrong-key"},
+        )
+        self.assertEqual(resp.status_code, 401)
+
+    async def test_upload_accepted_with_correct_token(self) -> None:
+        config.CLOUD_WEBHOOK = "https://example.com/webhook"
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.raise_for_status.return_value = None
+        mock_http = AsyncMock()
+        mock_http.__aenter__ = AsyncMock(return_value=mock_http)
+        mock_http.__aexit__ = AsyncMock(return_value=False)
+        mock_http.post = AsyncMock(return_value=mock_resp)
+
+        await database.insert({"state": "REFERENCE_OK"})
+
+        with patch("httpx.AsyncClient", return_value=mock_http):
+            resp = await self.client.post(
+                "/api/upload?since_cursor=0",
+                headers={"Authorization": "Bearer test-secret-key"},
+            )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()["uploaded"], 1)
+
+    # ── No API key configured = everything open ──────────────────────────────
+
+    async def test_upload_open_when_api_key_not_set(self) -> None:
+        config.API_KEY = ""
+        config.CLOUD_WEBHOOK = "https://example.com/webhook"
+
+        # No records to upload, but the point is it reaches the handler (200)
+        # instead of being blocked (401).
+        resp = await self.client.post("/api/upload?since_cursor=999")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()["uploaded"], 0)
+
+
 # ── Reporting ──────────────────────────────────────────────────────────────────
 
 
@@ -621,6 +762,7 @@ if __name__ == "__main__":
     suite = unittest.TestSuite()
     suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(ServiceTests))
     suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(ApiHttpTests))
+    suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(ApiKeyTests))
     runner = unittest.TextTestRunner(
         stream=sys.stdout,
         verbosity=0,
