@@ -17,6 +17,7 @@ GET  /redoc                     ReDoc (auto-generated)
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import hmac
 import ipaddress
 import json
@@ -37,6 +38,9 @@ from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 log = logging.getLogger("api")
+
+SSE_KEEPALIVE_SECONDS = 15.0
+SSE_POLL_INTERVAL_SECONDS = 1.0
 
 # ── Response models ───────────────────────────────────────────────────────────
 
@@ -156,6 +160,18 @@ app.add_middleware(
 # ── Optional API key authentication ──────────────────────────────────────────
 
 _WRITE_PATHS = ("/api/upload",)
+_active_sse_connections = 0
+
+
+def _valid_bearer_token(authorization: str) -> bool:
+    """Compare bearer tokens using fixed-length digests."""
+    scheme, separator, token = authorization.partition(" ")
+    if separator != " " or scheme.lower() != "bearer" or not token:
+        return False
+
+    supplied = hashlib.sha256(token.encode("utf-8")).digest()
+    expected = hashlib.sha256(config.API_KEY.encode("utf-8")).digest()
+    return hmac.compare_digest(supplied, expected)
 
 
 @app.middleware("http")
@@ -177,7 +193,7 @@ async def _api_key_middleware(request: Request, call_next):
         return await call_next(request)
 
     auth = request.headers.get("authorization", "")
-    if hmac.compare_digest(auth, f"Bearer {config.API_KEY}"):
+    if _valid_bearer_token(auth):
         return await call_next(request)
 
     return JSONResponse(status_code=401, content={"detail": "Invalid or missing API key"})
@@ -218,7 +234,13 @@ async def stream():
     **curl:** `curl -N http://<host>:8000/api/stream`
     """
 
+    global _active_sse_connections
+    if _active_sse_connections >= config.MAX_SSE_CONNECTIONS:
+        raise HTTPException(503, detail="Too many active SSE connections")
+    _active_sse_connections += 1
+
     async def _generate():
+        global _active_sse_connections
         last = None
         last_keepalive = asyncio.get_running_loop().time()
         try:
@@ -231,14 +253,16 @@ async def stream():
                     last = state
                     yield f"data: {json.dumps(state)}\n\n"
                     last_keepalive = now
-                elif now - last_keepalive >= 15:
+                elif now - last_keepalive >= SSE_KEEPALIVE_SECONDS:
                     # SSE comment - keeps the connection alive through proxies that
                     # close idle connections after ~60 s of silence.
                     yield ": keepalive\n\n"
                     last_keepalive = now
-                await asyncio.sleep(1)
+                await asyncio.sleep(SSE_POLL_INTERVAL_SECONDS)
         except asyncio.CancelledError:
             return
+        finally:
+            _active_sse_connections -= 1
 
     return StreamingResponse(
         _generate(),

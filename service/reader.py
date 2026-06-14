@@ -28,6 +28,9 @@ import serial
 
 log = logging.getLogger("reader")
 
+SERIAL_RETRY_DELAY_SECONDS = 5.0
+SERIAL_STALL_TIMEOUT_SECONDS = 10.0
+
 # Live state shared with API handlers (written only from _loop).
 # Protected by _state_lock because the dict reference is replaced from a
 # thread-pool worker while async handlers may be iterating it for JSON
@@ -116,8 +119,9 @@ async def _run() -> None:
         except (OSError, serial.SerialException) as exc:
             if _stop.is_set():
                 break
-            log.warning("Serial fault (%s), retry in 5 s …", exc)
-            for _ in range(50):
+            log.warning("Serial fault (%s), retry in %.0f s …", exc, SERIAL_RETRY_DELAY_SECONDS)
+            retry_ticks = max(1, int(SERIAL_RETRY_DELAY_SECONDS * 10))
+            for _ in range(retry_ticks):
                 if _stop.is_set():
                     break
                 await asyncio.sleep(0.1)
@@ -128,7 +132,7 @@ async def _loop() -> None:
     log.info("Serial connected: %s @ %d baud", config.SERIAL_PORT, config.BAUD_RATE)
 
     loop = asyncio.get_running_loop()
-    deadline = loop.time() + 10.0
+    deadline = loop.time() + SERIAL_STALL_TIMEOUT_SECONDS
     received_any_data = False
 
     try:

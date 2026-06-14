@@ -16,7 +16,9 @@ import sys
 import tempfile
 import time as time_module
 import unittest
+from collections.abc import AsyncGenerator
 from pathlib import Path
+from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
@@ -30,6 +32,7 @@ import config  # noqa: E402
 import database  # noqa: E402
 import reader  # noqa: E402
 from fastapi import HTTPException  # noqa: E402
+from starlette.responses import StreamingResponse  # noqa: E402
 
 # A realistic parsed_state payload matching the firmware JSON schema.
 _SAMPLE_STATE: dict = {
@@ -47,6 +50,12 @@ _SAMPLE_STATE: dict = {
     "utcTime": "120000.00",
     "utcDate": "140626",
 }
+
+
+def _sse_iterator(response: StreamingResponse) -> AsyncGenerator[str, None]:
+    """Narrow this endpoint's body from Starlette's AsyncIterable to its generator."""
+    return cast(AsyncGenerator[str, None], response.body_iterator)
+
 
 TEST_DESCRIPTIONS: dict[str, str] = {
     # ── ServiceTests ──────────────────────────────────────────────────────────
@@ -73,6 +82,25 @@ TEST_DESCRIPTIONS: dict[str, str] = {
     ),
     "test_stream_disables_caching_and_proxy_buffering": (
         "SSE responses disable caches and nginx buffering so updates arrive immediately."
+    ),
+    "test_stream_emits_state_and_releases_connection": (
+        "SSE emits the current parsed state and releases its connection slot when closed."
+    ),
+    "test_stream_emits_keepalive": ("SSE emits a comment keepalive when no new GPS state arrives."),
+    "test_stream_rejects_connections_above_limit": (
+        "SSE returns HTTP 503 when the configured concurrent connection limit is reached."
+    ),
+    "test_stream_cancellation_releases_connection": (
+        "Cancelling a disconnected SSE consumer releases its connection slot."
+    ),
+    "test_bearer_token_validation": (
+        "Bearer parsing accepts only the configured token and compares fixed-length digests."
+    ),
+    "test_reader_retries_after_serial_fault": (
+        "The serial supervisor retries after a recoverable port fault."
+    ),
+    "test_reader_reopens_stalled_port": (
+        "The serial loop closes and reports a port that produces no data before its deadline."
     ),
     "test_reader_skips_malformed_json": (
         "Silently discards lines that are not valid JSON without crashing the reader loop."
@@ -172,6 +200,7 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
         self.original_max_db_bytes = config.MAX_DB_BYTES
         config.DB_PATH = str(Path(self.temp_dir.name) / "positions.db")
         config.MAX_DB_BYTES = 1024**3
+        api._active_sse_connections = 0
         await database.init()
 
     async def asyncTearDown(self) -> None:
@@ -179,6 +208,7 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
         await database.close()
         config.DB_PATH = self.original_db_path
         config.MAX_DB_BYTES = self.original_max_db_bytes
+        api._active_sse_connections = 0
         self.temp_dir.cleanup()
 
     async def test_database_round_trip_and_stats(self) -> None:
@@ -250,10 +280,75 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
             reader._set_state(original_state)
 
     async def test_stream_disables_caching_and_proxy_buffering(self) -> None:
+        reader._set_state(_SAMPLE_STATE.copy())
         response = await api.stream()
+        events = _sse_iterator(response)
+        await events.__anext__()
+        self.assertEqual(response.headers["content-type"], "text/event-stream; charset=utf-8")
         self.assertEqual(response.headers["cache-control"], "no-cache")
         self.assertEqual(response.headers["x-accel-buffering"], "no")
-        await response.body_iterator.aclose()
+        await events.aclose()
+
+    async def test_stream_emits_state_and_releases_connection(self) -> None:
+        reader._set_state(_SAMPLE_STATE.copy())
+        response = await api.stream()
+        events = _sse_iterator(response)
+        event = await events.__anext__()
+        self.assertIn('"state": "REFERENCE_OK"', event)
+        await events.aclose()
+        self.assertEqual(api._active_sse_connections, 0)
+
+    async def test_stream_emits_keepalive(self) -> None:
+        original_keepalive = api.SSE_KEEPALIVE_SECONDS
+        try:
+            api.SSE_KEEPALIVE_SECONDS = 0
+            reader._set_state({})
+            response = await api.stream()
+            events = _sse_iterator(response)
+            event = await events.__anext__()
+            self.assertEqual(event, ": keepalive\n\n")
+            await events.aclose()
+        finally:
+            api.SSE_KEEPALIVE_SECONDS = original_keepalive
+
+    async def test_stream_rejects_connections_above_limit(self) -> None:
+        original_limit = config.MAX_SSE_CONNECTIONS
+        try:
+            config.MAX_SSE_CONNECTIONS = 1
+            reader._set_state(_SAMPLE_STATE.copy())
+            response = await api.stream()
+            events = _sse_iterator(response)
+            await events.__anext__()
+            with self.assertRaises(HTTPException) as error:
+                await api.stream()
+            self.assertEqual(error.exception.status_code, 503)
+            await events.aclose()
+        finally:
+            config.MAX_SSE_CONNECTIONS = original_limit
+            api._active_sse_connections = 0
+
+    async def test_stream_cancellation_releases_connection(self) -> None:
+        reader._set_state({})
+        response = await api.stream()
+        events = _sse_iterator(response)
+        task = asyncio.create_task(events.__anext__())
+        await asyncio.sleep(0)
+        task.cancel()
+        with self.assertRaises((asyncio.CancelledError, StopAsyncIteration)):
+            await task
+        self.assertEqual(api._active_sse_connections, 0)
+
+    async def test_bearer_token_validation(self) -> None:
+        original_api_key = config.API_KEY
+        try:
+            config.API_KEY = "secret-token"
+            self.assertTrue(api._valid_bearer_token("Bearer secret-token"))
+            self.assertTrue(api._valid_bearer_token("bearer secret-token"))
+            self.assertFalse(api._valid_bearer_token("Bearer wrong"))
+            self.assertFalse(api._valid_bearer_token("Basic secret-token"))
+            self.assertFalse(api._valid_bearer_token(""))
+        finally:
+            config.API_KEY = original_api_key
 
     async def test_database_close_is_idempotent(self) -> None:
         """Calling close() twice must not raise so shutdown paths are robust."""
@@ -331,6 +426,45 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(calls, 1)
         self.assertIsNone(reader._task)
+
+    async def test_reader_retries_after_serial_fault(self) -> None:
+        calls = 0
+
+        async def fake_loop() -> None:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                raise OSError("port disconnected")
+            reader._stop.set()
+
+        with (
+            patch.object(reader, "_loop", new=fake_loop),
+            patch.object(reader, "SERIAL_RETRY_DELAY_SECONDS", 0),
+            patch.object(reader.asyncio, "sleep", new=AsyncMock()),
+        ):
+            reader._stop.clear()
+            await reader._run()
+
+        self.assertEqual(calls, 2)
+
+    async def test_reader_reopens_stalled_port(self) -> None:
+        class FakeSerial:
+            closed = False
+
+            def close(self) -> None:
+                self.closed = True
+
+        fake_serial = FakeSerial()
+        with (
+            patch.object(reader, "_open_port", new=lambda: fake_serial),
+            patch.object(reader, "_readline_interruptible", new=lambda _: b""),
+            patch.object(reader, "SERIAL_STALL_TIMEOUT_SECONDS", 0),
+        ):
+            reader._stop.clear()
+            with self.assertRaisesRegex(OSError, "stalled port"):
+                await reader._loop()
+
+        self.assertTrue(fake_serial.closed)
 
 
 # ── HTTP-layer tests ───────────────────────────────────────────────────────────

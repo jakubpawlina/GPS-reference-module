@@ -15,4 +15,6 @@ install_dependencies() {
 tasklog_begin "Raspberry Pi service environment"
 tasklog_step SETUP "Create or refresh local Python virtual environment" create_environment
 tasklog_step SETUP "Install service dependencies" install_dependencies
+mkdir -p "$ROOT/.mise-state"
+touch "$ROOT/.mise-state/service-environment"
 tasklog_end "2 steps, output=.venv"

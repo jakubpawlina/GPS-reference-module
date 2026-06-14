@@ -315,6 +315,7 @@ Environment=GPS_SERIAL_PORT=/dev/ttyUSB0
 Environment=GPS_BAUD_RATE=115200
 Environment=GPS_DB_PATH=/var/lib/gps-reference/data.db
 Environment=GPS_MAX_DB_BYTES=4294967296
+Environment=GPS_MAX_SSE_CONNECTIONS=32
 Environment=GPS_HTTP_PORT=8000
 # Environment=GPS_API_KEY=your-secret-token
 # Environment=GPS_CLOUD_WEBHOOK=https://example.com/ingest
@@ -326,6 +327,7 @@ Environment=GPS_HTTP_PORT=8000
 | `GPS_BAUD_RATE` | `115200` | ESP32 USB serial baud rate |
 | `GPS_DB_PATH` | `/var/lib/gps-reference/data.db` | SQLite database |
 | `GPS_MAX_DB_BYTES` | `4294967296` | Maximum database size, default 4 GiB |
+| `GPS_MAX_SSE_CONNECTIONS` | `32` | Maximum concurrent dashboard event streams |
 | `GPS_HTTP_PORT` | `8000` | HTTP server port |
 | `GPS_API_KEY` | Empty | Optional Bearer token for write endpoints (`/api/upload`) |
 | `GPS_CLOUD_WEBHOOK` | Empty | Optional upload destination |

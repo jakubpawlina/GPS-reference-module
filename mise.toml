@@ -11,84 +11,115 @@ python = "3.13"
 
 [tasks.help]
 description = "Start here: show the recommended development workflow"
+raw = true
 run = "./tools/show-workflows.sh"
 
 [tasks."firmware:bootstrap"]
 description = "First setup: install the ESP32 core and Arduino libraries"
+sources = ["tools/setup-firmware-toolchain.sh"]
+outputs = [".mise-state/firmware-toolchain"]
+raw = true
 run = "./tools/setup-firmware-toolchain.sh"
 
 [tasks."firmware:compile"]
 description = "Build only the ESP32 firmware"
+depends = ["firmware:bootstrap"]
+raw = true
 run = "./tools/run-firmware-checks.sh compile"
 
 [tasks."service:bootstrap"]
 description = "First setup: create the service test environment and install Python dependencies"
+sources = ["service/requirements.txt", "tools/setup-service-environment.sh"]
+outputs = [".mise-state/service-environment", ".venv/bin/python"]
+raw = true
 run = "./tools/setup-service-environment.sh"
 
 [tasks."service:dev"]
 description = "Develop: run the service locally with fake GPS data (no hardware needed)"
+depends = ["service:bootstrap"]
+raw = true
 run = "trap '' INT; exec .venv/bin/python tools/run-service-dev.py"
 
 [tasks."docs:generate"]
 description = "Docs: generate firmware API documentation"
+raw = true
 run = "./tools/run-firmware-checks.sh docs"
 
 [tasks."docs:serve"]
 description = "Docs: generate and serve firmware API documentation"
+raw = true
 run = "trap '' INT; exec python3 tools/serve-firmware-docs.py"
 
 [tasks."deploy:install"]
 description = "Deploy: install or upgrade the Raspberry Pi service"
+raw = true
 run = "./tools/deploy-rpi-service.sh"
 
 [tasks."deploy:uninstall"]
 description = "Deploy: remove the Raspberry Pi service"
+raw = true
 run = "./tools/deploy-rpi-service.sh --uninstall"
 
 [tasks."simulation:generate"]
 description = "Wokwi: generate sources only, without build artifacts"
+raw = true
 run = "./tools/generate-wokwi-project.sh"
 
 [tasks."simulation:build"]
 description = "Wokwi: build/rebuild the complete VS Code project"
+depends = ["firmware:bootstrap"]
+raw = true
 run = "./tools/build-wokwi-project.sh"
 
 [tasks."test:unit"]
 description = "Develop: run fast firmware logic tests"
+raw = true
 run = "./tools/run-tests.sh unit"
 
 [tasks."test:integration"]
 description = "Develop: test firmware runtime and simulated peripherals"
+raw = true
 run = "./tools/run-tests.sh integration"
 
 [tasks."test:simulation"]
 description = "Develop: test Wokwi assets, generator, and GPS chip"
+raw = true
 run = "./tools/run-tests.sh simulation"
 
 [tasks."test:service"]
 description = "Develop: test Raspberry Pi storage, API validation, and lifecycle behavior"
+depends = ["service:bootstrap"]
+raw = true
 run = "./tools/run-tests.sh service"
 
 [tasks."test:all"]
 description = "Before commit: run all host-side tests without Docker"
+depends = ["service:bootstrap"]
+raw = true
 run = "./tools/run-tests.sh all"
 
 [tasks.verify]
 description = "Before PR: run all tests and builds (requires Docker)"
+depends = ["firmware:bootstrap", "service:bootstrap"]
+raw = true
 run = "./tools/run-verification.sh"
 
 [tasks.format]
 description = "Format: auto-format Python (ruff), C++ (clang-format), and shell (shfmt)"
+raw = true
 run = "./tools/run-format.sh"
 
 [tasks."format:check"]
 description = "Format: verify formatting without making changes (CI gate)"
+raw = true
 run = "./tools/run-format.sh --check"
 
 [tasks.lint]
 description = "Lint: static analysis for Python (ruff check) and shell (shfmt)"
+raw = true
 run = "./tools/run-lint.sh"
 
 [tasks."lint:fix"]
 description = "Lint: auto-fix Python issues (ruff check --fix)"
+raw = true
 run = "./tools/run-lint.sh --fix"

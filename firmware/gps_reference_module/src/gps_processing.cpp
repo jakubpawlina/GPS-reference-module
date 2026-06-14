@@ -41,6 +41,8 @@
 
 #include "gps_processing.h"
 
+#include <cerrno>
+#include <cctype>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -133,6 +135,40 @@ static int splitCsv(char *text, char *fields[], int maxFields) {
   return count;
 }
 
+/** @brief Parse a complete finite decimal field. */
+static bool parseDoubleField(const char *text, double &result) {
+  if (!text || !text[0] || std::isspace(static_cast<unsigned char>(text[0]))) {
+    return false;
+  }
+
+  errno = 0;
+  char *end = nullptr;
+  const double value = strtod(text, &end);
+  if (end == text || *end != '\0' || errno == ERANGE || !std::isfinite(value)) {
+    return false;
+  }
+
+  result = value;
+  return true;
+}
+
+/** @brief Parse a complete unsigned integer field within an explicit limit. */
+static bool parseUint8Field(const char *text, uint8_t maximum, uint8_t &result) {
+  if (!text || text[0] < '0' || text[0] > '9') {
+    return false;
+  }
+
+  errno = 0;
+  char *end = nullptr;
+  const unsigned long value = strtoul(text, &end, 10);
+  if (end == text || *end != '\0' || errno == ERANGE || value > maximum) {
+    return false;
+  }
+
+  result = static_cast<uint8_t>(value);
+  return true;
+}
+
 /**
  * @brief Parse an NMEA coordinate (DDDMM.MMMM) and hemisphere into decimal degrees.
  * @param[in]  coordinate  Raw NMEA coordinate string.
@@ -157,9 +193,8 @@ static bool parseCoordinate(const char *coordinate, const char *hemisphere, bool
     return false;
   }
 
-  char *end = nullptr;
-  const double raw = strtod(coordinate, &end);
-  if (end == coordinate || *end != '\0' || !std::isfinite(raw) || raw < 0.0) {
+  double raw = 0.0;
+  if (!parseDoubleField(coordinate, raw) || raw < 0.0) {
     return false;
   }
 
@@ -271,26 +306,31 @@ static void parseGga(GpsData &gps, char *fields[], int count, uint32_t nowMs) {
     gps.timeValid = true;
   }
 
-  gps.fixQuality = static_cast<uint8_t>(atoi(fields[6]));
-  gps.hasFix = gps.fixQuality > 0;
-  gps.satellitesUsed = static_cast<uint8_t>(atoi(fields[7]));
+  uint8_t fixQuality = 0;
+  const bool fixQualityValid = parseUint8Field(fields[6], 8, fixQuality);
+  gps.fixQuality = fixQualityValid ? fixQuality : 0;
+  gps.hasFix = fixQualityValid && gps.fixQuality > 0;
 
-  if (count > 8 && fields[8][0]) {
-    gps.hdop = atof(fields[8]);
+  uint8_t satellitesUsed = 0;
+  gps.satellitesUsed = parseUint8Field(fields[7], 99, satellitesUsed) ? satellitesUsed : 0;
+
+  double value = 0.0;
+  if (count > 8 && parseDoubleField(fields[8], value) && value >= 0.0) {
+    gps.hdop = value;
     gps.hdopValid = true;
   } else {
     gps.hdopValid = false;
   }
 
-  if (count > 9 && fields[9][0]) {
-    gps.altitudeM = atof(fields[9]);
+  if (count > 9 && parseDoubleField(fields[9], value)) {
+    gps.altitudeM = value;
     gps.altitudeValid = true;
   } else {
     gps.altitudeValid = false;
   }
 
-  if (count > 11 && fields[11][0]) {
-    gps.geoidSeparationM = atof(fields[11]);
+  if (count > 11 && parseDoubleField(fields[11], value)) {
+    gps.geoidSeparationM = value;
     gps.geoidValid = true;
   } else {
     gps.geoidSeparationM = 0.0;
@@ -319,10 +359,10 @@ static void parseGsa(GpsData &gps, char *fields[], int count, uint32_t nowMs) {
 
   gps.lastGsaMs = nowMs;
 
-  const uint8_t nmeaFixType = static_cast<uint8_t>(atoi(fields[2]));
-  gps.fixTypeValid = true;
+  uint8_t nmeaFixType = 0;
+  gps.fixTypeValid = parseUint8Field(fields[2], 3, nmeaFixType) && nmeaFixType >= 1;
 
-  if (nmeaFixType == 2 || nmeaFixType == 3) {
+  if (gps.fixTypeValid && (nmeaFixType == 2 || nmeaFixType == 3)) {
     gps.fixType = nmeaFixType;
     gps.hasFix = true;
   } else {
@@ -330,22 +370,23 @@ static void parseGsa(GpsData &gps, char *fields[], int count, uint32_t nowMs) {
     markPositionInvalid(gps);
   }
 
-  if (count > 15 && fields[15][0]) {
-    gps.pdop = atof(fields[15]);
+  double value = 0.0;
+  if (count > 15 && parseDoubleField(fields[15], value) && value >= 0.0) {
+    gps.pdop = value;
     gps.pdopValid = true;
   } else {
     gps.pdopValid = false;
   }
 
-  if (count > 16 && fields[16][0]) {
-    gps.hdop = atof(fields[16]);
+  if (count > 16 && parseDoubleField(fields[16], value) && value >= 0.0) {
+    gps.hdop = value;
     gps.hdopValid = true;
   } else {
     gps.hdopValid = false;
   }
 
-  if (count > 17 && fields[17][0]) {
-    gps.vdop = atof(fields[17]);
+  if (count > 17 && parseDoubleField(fields[17], value) && value >= 0.0) {
+    gps.vdop = value;
     gps.vdopValid = true;
   } else {
     gps.vdopValid = false;
@@ -386,16 +427,17 @@ static void parseRmc(GpsData &gps, char *fields[], int count, uint32_t nowMs) {
     }
   }
 
-  if (count > 7 && fields[7][0]) {
-    gps.speedKnots = atof(fields[7]);
+  double value = 0.0;
+  if (count > 7 && parseDoubleField(fields[7], value) && value >= 0.0) {
+    gps.speedKnots = value;
     gps.speedKmh = gps.speedKnots * GpsConfig::KNOTS_TO_KMH;
     gps.speedValid = true;
   } else {
     gps.speedValid = false;
   }
 
-  if (count > 8 && fields[8][0]) {
-    gps.courseDeg = atof(fields[8]);
+  if (count > 8 && parseDoubleField(fields[8], value) && value >= 0.0 && value <= 360.0) {
+    gps.courseDeg = value;
     gps.courseValid = true;
   } else {
     gps.courseValid = false;

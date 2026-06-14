@@ -29,6 +29,7 @@ SERVICE="gps-reference"
 SERIAL_PORT="${GPS_SERIAL_PORT:-/dev/ttyUSB0}"
 HTTP_PORT="${GPS_HTTP_PORT:-8000}"
 MAX_DB_BYTES="${GPS_MAX_DB_BYTES:-4294967296}" # 4 GB
+MAX_SSE_CONNECTIONS="${GPS_MAX_SSE_CONNECTIONS:-32}"
 CLOUD_WEBHOOK="${GPS_CLOUD_WEBHOOK:-}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -143,6 +144,7 @@ Environment=GPS_SERIAL_PORT=${SERIAL_PORT}
 Environment=GPS_DB_PATH=${DATA_DIR}/data.db
 Environment=GPS_HTTP_PORT=${HTTP_PORT}
 Environment=GPS_MAX_DB_BYTES=${MAX_DB_BYTES}
+Environment=GPS_MAX_SSE_CONNECTIONS=${MAX_SSE_CONNECTIONS}
 # Uncomment to override defaults:
 # Environment=GPS_BAUD_RATE=115200
 # Environment=GPS_HTTP_HOST=0.0.0.0

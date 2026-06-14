@@ -83,10 +83,11 @@ All settings are environment variables. Edit the systemd override file:
 | `GPS_BAUD_RATE` | `115200` | Must match `UsbConfig::BAUD_RATE` in firmware |
 | `GPS_DB_PATH` | `/var/lib/gps-reference/data.db` | SQLite database path |
 | `GPS_MAX_DB_BYTES` | `4294967296` | Storage cap in bytes (default 4 GB) |
+| `GPS_MAX_SSE_CONNECTIONS` | `32` | Maximum concurrent dashboard event streams |
 | `GPS_HTTP_HOST` | `0.0.0.0` | Listen address for the HTTP server |
 | `GPS_HTTP_PORT` | `8000` | Listen port |
 | `GPS_CORS_ORIGINS` | `*` | Comma-separated list of allowed CORS origins |
-| `GPS_API_KEY` | _(empty)_ | Optional Bearer token for `/api/*` endpoints (see [API key authentication](#api-key-authentication)) |
+| `GPS_API_KEY` | _(empty)_ | Optional Bearer token for write endpoints (see [API key authentication](#api-key-authentication)) |
 | `GPS_CLOUD_WEBHOOK` | _(empty)_ | Administrator-controlled HTTP(S) destination for `POST /api/upload` |
 
 After editing, reload and restart:
@@ -156,6 +157,10 @@ cd ~/gps-reference
 
 The installer refreshes the application files, Python dependencies, systemd
 unit, local override, permissions, and service state.
+
+If `GPS_DB_PATH` points outside `/var/lib/gps-reference`, add that directory
+to `ReadWritePaths` in a systemd override. The packaged unit enables
+`ProtectSystem=strict`.
 
 ---
 

@@ -11,12 +11,25 @@ ExecStart=/opt/gps-reference/venv/bin/python main.py
 Restart=always
 RestartSec=5
 TimeoutStopSec=10
+UMask=0077
+
+# Limit filesystem and privilege exposure while retaining serial-device access.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/gps-reference
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
 
 # Override any of these in /etc/systemd/system/gps-reference.service.d/local.conf
 Environment=GPS_SERIAL_PORT=/dev/ttyUSB0
 Environment=GPS_DB_PATH=/var/lib/gps-reference/data.db
 Environment=GPS_HTTP_PORT=8000
 Environment=GPS_MAX_DB_BYTES=4294967296
+Environment=GPS_MAX_SSE_CONNECTIONS=32
 # Environment=GPS_CLOUD_WEBHOOK=https://your-endpoint/ingest
 
 [Install]

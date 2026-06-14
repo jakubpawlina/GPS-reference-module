@@ -239,10 +239,6 @@ end_suite() {
 		"$(format_duration "$duration_ms")"
 }
 
-run_sanitized() {
-	ASAN_OPTIONS="${ASAN_OPTIONS:-detect_leaks=0}" "$@"
-}
-
 run_unit_tests() {
 	require_tool g++
 	begin_suite "Firmware unit tests"
@@ -260,7 +256,7 @@ run_unit_tests() {
 		-o "$UNIT_TEST_BIN"
 
 	run_listed_step PASS 11 "Execute firmware unit cases" \
-		run_sanitized "$UNIT_TEST_BIN"
+		"$UNIT_TEST_BIN"
 
 	end_suite
 }
@@ -291,7 +287,7 @@ run_integration_tests() {
 	local scenario_details
 	local scenario_check
 	while IFS=';' read -r scenario scenario_details scenario_check; do
-		run_step PASS 1 "$scenario_details" run_sanitized "$INTEGRATION_TEST_BIN" "$scenario"
+		run_step PASS 1 "$scenario_details" "$INTEGRATION_TEST_BIN" "$scenario"
 		print_check_description "$scenario_check"
 	done <<'EOF'
 no-data;NO_GPS_DATA | OLED=NO DATA | LED E=1 D=0 W=0 OK=0;No UART data produces the expected serial, display, and error indication.
@@ -352,7 +348,7 @@ run_service_tests() {
 	fi
 
 	begin_suite "Raspberry Pi service tests"
-	run_listed_step PASS 37 "Execute async service cases" \
+	run_listed_step PASS 44 "Execute async service cases" \
 		"$SERVICE_PYTHON" "$ROOT/tests/service/test_service.py"
 	end_suite
 }

@@ -109,6 +109,15 @@ void testGgaParsing() {
   require(nearlyEqual(gps.longitude, 11.5166667), "GGA longitude parse mismatch");
   require(nearlyEqual(gps.altitudeM, 545.4), "GGA altitude parse mismatch");
   require(gps.lastGgaMs == 1000, "GGA timestamp mismatch");
+
+  GpsProcessing::processNmeaSentence(
+      gps, "$GPGGA,123520,4807.038,N,01131.000,E,bad,-1,nan,oops,M,inf,M,,", 1100, false);
+  require(!gps.hasFix, "malformed fix quality should clear fix");
+  require(gps.fixQuality == 0, "malformed fix quality should report zero");
+  require(gps.satellitesUsed == 0, "malformed satellite count should report zero");
+  require(!gps.hdopValid, "non-finite GGA HDOP should be invalid");
+  require(!gps.altitudeValid, "malformed altitude should be invalid");
+  require(!gps.geoidValid, "non-finite geoid separation should be invalid");
 }
 
 /**
@@ -168,6 +177,17 @@ void testRmcAndGsaParsing() {
   GpsProcessing::processNmeaSentence(gps, "$GPGSA,A,2,04,05,09,12,24,25,29,31,02,14,18,22,1.8,,1.2",
                                      2200, false);
   require(!gps.hdopValid, "GSA without HDOP should clear stale HDOP validity");
+
+  GpsProcessing::processNmeaSentence(
+      gps, "$GPGSA,A,bad,04,05,09,12,24,25,29,31,02,14,18,22,nan,-1,inf", 2300, false);
+  require(!gps.fixTypeValid, "malformed GSA fix type should be invalid");
+  require(!gps.pdopValid && !gps.hdopValid && !gps.vdopValid,
+          "malformed or non-finite GSA DOP values should be invalid");
+
+  GpsProcessing::processNmeaSentence(
+      gps, "$GPRMC,120002.00,A,5001.000,N,01957.000,E,bad,361,250526,,,A", 2400, false);
+  require(!gps.speedValid, "malformed RMC speed should be invalid");
+  require(!gps.courseValid, "out-of-range RMC course should be invalid");
 }
 
 /**

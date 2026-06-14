@@ -1,5 +1,6 @@
 simulation/wokwi/
 .venv/
+.mise-state/
 .ruff_cache/
 *.pyc
 __pycache__/

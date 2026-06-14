@@ -19,4 +19,6 @@ tasklog_step SETUP "Update Arduino package index" arduino-cli core update-index
 tasklog_step SETUP "Install ESP32 Arduino core" arduino-cli core install esp32:esp32
 tasklog_step SETUP "Install SSD1306 and GFX libraries" \
 	arduino-cli lib install "Adafruit SSD1306" "Adafruit GFX Library"
+mkdir -p "$ROOT/.mise-state"
+touch "$ROOT/.mise-state/firmware-toolchain"
 tasklog_end "3 steps"
