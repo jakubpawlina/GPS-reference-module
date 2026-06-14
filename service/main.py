@@ -8,6 +8,8 @@ Shutdown sequence on SIGTERM:
   5. Process exits cleanly - typically within 4-5 s, well under TimeoutStopSec=10
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
 import types

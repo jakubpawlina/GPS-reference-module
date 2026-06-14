@@ -6,7 +6,7 @@
 #   ./tools/run-format.sh --check   # exit non-zero if any file needs reformatting
 #
 # Formatters used:
-#   ruff format   — Python (service/, tools/*.py)
+#   ruff format   — Python (service/, tools/*.py, tests/)
 #   clang-format  — C++ (firmware/, tests/firmware/, tests/integration/)
 #   shfmt         — Shell (tools/*.sh)
 
@@ -35,13 +35,13 @@ info() { printf '  %s\n' "$1"; }
 
 if command -v ruff &>/dev/null; then
 	if $CHECK; then
-		if ruff format --check service/ tools/*.py 2>/dev/null; then
+		if ruff format --check service/ tools/*.py tests/ 2>/dev/null; then
 			ok "Python (ruff format --check)"
 		else
 			fail "Python — run 'mise run format' to fix"
 		fi
 	else
-		ruff format service/ tools/*.py 2>/dev/null
+		ruff format service/ tools/*.py tests/ 2>/dev/null
 		ok "Python (ruff format)"
 	fi
 else

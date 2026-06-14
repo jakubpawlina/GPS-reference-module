@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Tests & quality gates
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jdx/mise-action@v2
+
+      - name: Install system packages
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq g++ clang-format
+
+      - name: Set up service environment
+        run: ./tools/setup-service-environment.sh
+
+      - name: Run all tests
+        run: ./tools/run-tests.sh all
+        env:
+          FORCE_COLOR: "1"
+
+      - name: Check formatting
+        run: ./tools/run-format.sh --check
+
+      - name: Lint
+        run: ./tools/run-lint.sh

@@ -23,7 +23,7 @@ info() { printf '  %s\n' "$1"; }
 # ── Python — ruff check ───────────────────────────────────────────────────────
 
 if command -v ruff &>/dev/null; then
-	if ruff check service/ tools/*.py; then
+	if ruff check service/ tools/*.py tests/; then
 		ok "Python (ruff check)"
 	else
 		fail "Python — fix the issues above or run 'ruff check --fix'"
