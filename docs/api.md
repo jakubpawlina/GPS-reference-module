@@ -20,6 +20,8 @@ Returns the latest GPS state received from the ESP32.
   "millis": 452833,
   "state": "REFERENCE_OK",
   "valid": true,
+  "gpsData": true,
+  "displayReady": true,
   "fix": true,
   "fixType": "3D",
   "fixQuality": 2,
@@ -30,9 +32,19 @@ Returns the latest GPS state received from the ESP32.
   "hdop": 0.8,
   "pdop": 1.6,
   "vdop": 1.4,
+  "speedKnots": 0.02,
   "speedKmh": 0.04,
+  "courseDeg": 54.7,
   "utcTime": "180810.00",
-  "utcDate": "250526"
+  "utcDate": "250526",
+  "nmeaAgeMs": 80,
+  "ggaAgeMs": 80,
+  "gsaAgeMs": 120,
+  "rmcAgeMs": 90,
+  "rawSentenceCount": 617,
+  "acceptedSentenceCount": 494,
+  "checksumErrorCount": 0,
+  "bufferOverflowCount": 0
 }
 ```
 

@@ -146,12 +146,16 @@ no longer needed.
 
 ```bash
 # Copy new files to the RPi
-scp service/*.py pi@<rpi-ip>:~/gps-reference/
+scp service/*.py service/requirements.txt service/gps-reference.service \
+  pi@<rpi-ip>:~/gps-reference/service/
 
 # On the RPi
-sudo cp ~/gps-reference/*.py /opt/gps-reference/
-sudo systemctl restart gps-reference
+cd ~/gps-reference
+./tools/deploy-rpi-service.sh
 ```
+
+The installer refreshes the application files, Python dependencies, systemd
+unit, local override, permissions, and service state.
 
 ---
 
@@ -174,10 +178,12 @@ stats) and the dashboard remain open.
 Environment=GPS_API_KEY=your-secret-token-here
 ```
 
-Clients must include the token in every request:
+Clients must include the token on protected write requests:
 
 ```bash
-curl -H "Authorization: Bearer your-secret-token-here" http://<rpi-ip>:8000/api/status
+curl -X POST \
+  -H "Authorization: Bearer your-secret-token-here" \
+  "http://<rpi-ip>:8000/api/upload?since_cursor=0"
 ```
 
 ### Reverse proxy with nginx

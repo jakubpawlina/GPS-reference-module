@@ -71,6 +71,9 @@ TEST_DESCRIPTIONS: dict[str, str] = {
     "test_api_status_returns_503_before_first_message": (
         "Returns HTTP 503 when the serial reader has not yet received any data."
     ),
+    "test_stream_disables_caching_and_proxy_buffering": (
+        "SSE responses disable caches and nginx buffering so updates arrive immediately."
+    ),
     "test_reader_skips_malformed_json": (
         "Silently discards lines that are not valid JSON without crashing the reader loop."
     ),
@@ -245,6 +248,12 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(ctx.exception.status_code, 503)
         finally:
             reader._set_state(original_state)
+
+    async def test_stream_disables_caching_and_proxy_buffering(self) -> None:
+        response = await api.stream()
+        self.assertEqual(response.headers["cache-control"], "no-cache")
+        self.assertEqual(response.headers["x-accel-buffering"], "no")
+        await response.body_iterator.aclose()
 
     async def test_database_close_is_idempotent(self) -> None:
         """Calling close() twice must not raise so shutdown paths are robust."""

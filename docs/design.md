@@ -249,8 +249,9 @@ needed.
 ## 8. Known limitations
 
 - **Single GPS receiver.** No redundancy; a receiver fault means no position.
-- **No authentication.** The API is open on the LAN. Add a reverse proxy with
-  authentication if the network is not trusted.
+- **Read endpoints are unauthenticated.** `GPS_API_KEY` optionally protects
+  `POST /api/upload`, but the dashboard and read-only API remain open. Use an
+  authenticated reverse proxy when the network is not trusted.
 - **Clock drift.** Record timestamps use the RPi's system clock, which may
   drift without NTP. GPS UTC time is stored in `utc_time`/`utc_date` fields
   and can be used as an accurate reference.

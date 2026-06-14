@@ -163,7 +163,11 @@ void testRmcAndGsaParsing() {
       gps, "$GPGSA,A,2,04,05,09,12,24,25,29,31,02,14,18,22,1.8,1.0,1.2", 2100, false);
   require(gps.fixTypeValid, "GSA should set fix type valid");
   require(gps.fixType == 2, "GSA should parse 2D fix");
-  require(gps.pdopValid && gps.vdopValid, "GSA should set DOP validity");
+  require(gps.pdopValid && gps.hdopValid && gps.vdopValid, "GSA should set DOP validity");
+
+  GpsProcessing::processNmeaSentence(gps, "$GPGSA,A,2,04,05,09,12,24,25,29,31,02,14,18,22,1.8,,1.2",
+                                     2200, false);
+  require(!gps.hdopValid, "GSA without HDOP should clear stale HDOP validity");
 }
 
 /**

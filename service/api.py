@@ -240,7 +240,14 @@ async def stream():
         except asyncio.CancelledError:
             return
 
-    return StreamingResponse(_generate(), media_type="text/event-stream")
+    return StreamingResponse(
+        _generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 # ── Storage ────────────────────────────────────────────────────────────────────

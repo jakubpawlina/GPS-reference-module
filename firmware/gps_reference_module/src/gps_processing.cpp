@@ -340,6 +340,8 @@ static void parseGsa(GpsData &gps, char *fields[], int count, uint32_t nowMs) {
   if (count > 16 && fields[16][0]) {
     gps.hdop = atof(fields[16]);
     gps.hdopValid = true;
+  } else {
+    gps.hdopValid = false;
   }
 
   if (count > 17 && fields[17][0]) {
