@@ -5,6 +5,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/jakubpawlina/GPS-reference-module/actions/workflows/ci.yml"><img src="https://github.com/jakubpawlina/GPS-reference-module/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI status"></a>
   <a href="https://www.espressif.com/en/products/socs/esp32"><img src="https://img.shields.io/badge/MCU-ESP32-E7352C?logo=espressif&logoColor=white" alt="ESP32"></a>
   <a href="https://www.arduino.cc/"><img src="https://img.shields.io/badge/Firmware-Arduino-00878F?logo=arduino&logoColor=white" alt="Arduino"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Service-Python_3.9%2B-3776AB?logo=python&logoColor=white" alt="Python 3.9+"></a>
