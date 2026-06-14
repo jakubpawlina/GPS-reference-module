@@ -340,7 +340,7 @@ Environment=GPS_HTTP_PORT=8000
 | `GPS_BAUD_RATE` | `115200` | ESP32 USB serial baud rate |
 | `GPS_SERIAL_MAX_LINE_BYTES` | `4096` | Maximum accepted NDJSON record size |
 | `GPS_STATE_STALE_SECONDS` | `3` | Age after which live GPS state becomes unavailable |
-| `GPS_DB_PATH` | `/var/lib/gps-reference/data.db` | SQLite database |
+| `GPS_DB_PATH` | `/var/lib/gps-reference/data.db` | Absolute SQLite database path; its parent directory is prepared during deployment |
 | `GPS_MAX_DB_BYTES` | `4294967296` | Maximum database size, default 4 GiB |
 | `GPS_MAX_SSE_CONNECTIONS` | `32` | Maximum concurrent dashboard event streams |
 | `GPS_HTTP_PORT` | `8000` | HTTP server port |

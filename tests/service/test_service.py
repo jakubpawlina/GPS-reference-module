@@ -120,6 +120,9 @@ TEST_DESCRIPTIONS: dict[str, str] = {
     "test_reader_start_and_stop_are_idempotent": (
         "Starts one serial task and shuts it down cooperatively without leaking task state."
     ),
+    "test_installer_configures_custom_database_storage": (
+        "Prepares custom database directories and grants the hardened service write access."
+    ),
     # ── ApiHttpTests ──────────────────────────────────────────────────────────
     "test_status_200_with_live_state": (
         "GET /api/status returns 200 with the current GPS state when data is available."
@@ -957,6 +960,25 @@ class ApiKeyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(resp.json()["uploaded"], 0)
 
 
+# ── Deployment contract tests ────────────────────────────────────────────────
+
+
+class DeploymentTests(unittest.TestCase):
+    def test_installer_configures_custom_database_storage(self) -> None:
+        installer = (ROOT / "tools" / "install-rpi-service.sh").read_text()
+
+        self.assertIn('[[ "$DB_PATH" == /* ]]', installer)
+        self.assertIn('DB_DIR="$(dirname -- "$DB_PATH")"', installer)
+        self.assertIn("/home | /home/* | /root | /root/*)", installer)
+        self.assertIn('install -d -o "$APP_USER" -g "$APP_USER" "$DB_DIR"', installer)
+        self.assertIn('runuser -u "$APP_USER" -- test -w "$DB_DIR"', installer)
+        self.assertIn(
+            'write_systemd_path "$GENERATED_OVERRIDE" ReadWritePaths "$DB_DIR"',
+            installer,
+        )
+        self.assertIn('echo -e "  Data      : ${DB_PATH}"', installer)
+
+
 # ── Reporting ──────────────────────────────────────────────────────────────────
 
 
@@ -976,6 +998,7 @@ if __name__ == "__main__":
     suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(ServiceTests))
     suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(ApiHttpTests))
     suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(ApiKeyTests))
+    suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(DeploymentTests))
     runner = unittest.TextTestRunner(
         stream=sys.stdout,
         verbosity=0,

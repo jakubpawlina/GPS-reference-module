@@ -92,7 +92,7 @@ authentication, bind-address, CORS, and webhook settings.
 | `GPS_BAUD_RATE` | `115200` | Must match `UsbConfig::BAUD_RATE` in firmware |
 | `GPS_SERIAL_MAX_LINE_BYTES` | `4096` | Maximum accepted serial NDJSON record size |
 | `GPS_STATE_STALE_SECONDS` | `3` | Seconds without a parsed state before live data becomes unavailable |
-| `GPS_DB_PATH` | `/var/lib/gps-reference/data.db` | SQLite database path |
+| `GPS_DB_PATH` | `/var/lib/gps-reference/data.db` | Absolute SQLite database path; the installer creates its parent directory and grants service write access |
 | `GPS_MAX_DB_BYTES` | `4294967296` | Storage cap in bytes (default 4 GB) |
 | `GPS_MAX_SSE_CONNECTIONS` | `32` | Maximum concurrent dashboard event streams |
 | `GPS_HTTP_HOST` | `0.0.0.0` | Listen address for the HTTP server |
@@ -167,11 +167,14 @@ cd ~/gps-reference
 ```
 
 The installer refreshes the application files, Python dependencies, systemd
-unit, local override, permissions, and service state.
-
-If `GPS_DB_PATH` points outside `/var/lib/gps-reference`, add that directory
-to `ReadWritePaths` in a systemd override. The packaged unit enables
-`ProtectSystem=strict`.
+unit, generated settings, permissions, and service state. When `GPS_DB_PATH`
+points outside `/var/lib/gps-reference`, a missing parent directory is created
+for the application user and added to the generated systemd `ReadWritePaths`
+setting. An existing custom directory or database must already be writable by
+the application user; the installer will not change ownership of shared paths.
+The path must be absolute and cannot be directly under `/`, `/home`, or
+`/root`; home directories remain inaccessible because the service enables
+`ProtectHome=yes`.
 
 ---
 

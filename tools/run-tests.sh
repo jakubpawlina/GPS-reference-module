@@ -348,7 +348,7 @@ run_service_tests() {
 	fi
 
 	begin_suite "Raspberry Pi service tests"
-	run_listed_step PASS 48 "Execute async service cases" \
+	run_listed_step PASS 49 "Execute service and deployment cases" \
 		"$SERVICE_PYTHON" "$ROOT/tests/service/test_service.py"
 	end_suite
 }

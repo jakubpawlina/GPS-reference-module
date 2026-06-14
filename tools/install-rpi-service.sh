@@ -34,6 +34,19 @@ write_systemd_environment() {
 	printf 'Environment="%s=%s"\n' "$name" "$value" >>"$file"
 }
 
+write_systemd_path() {
+	local file="$1"
+	local directive="$2"
+	local value="$3"
+
+	[[ "$value" != *$'\n'* && "$value" != *$'\r'* ]] ||
+		die "$directive path must not contain newline characters"
+	value="${value//\\/\\\\}"
+	value="${value//\"/\\\"}"
+	value="${value//%/%%}"
+	printf '%s="%s"\n' "$directive" "$value" >>"$file"
+}
+
 # ── Configuration (override via environment) ───────────────────────────────────
 APP_USER="${GPS_APP_USER:-refmod}"
 INSTALL_DIR="/opt/gps-reference"
@@ -44,6 +57,16 @@ BAUD_RATE="${GPS_BAUD_RATE:-115200}"
 SERIAL_MAX_LINE_BYTES="${GPS_SERIAL_MAX_LINE_BYTES:-4096}"
 STATE_STALE_SECONDS="${GPS_STATE_STALE_SECONDS:-3}"
 DB_PATH="${GPS_DB_PATH:-$DATA_DIR/data.db}"
+[[ "$DB_PATH" == /* ]] || die "GPS_DB_PATH must be an absolute path, got: $DB_PATH"
+DB_DIR="$(dirname -- "$DB_PATH")"
+case "$DB_DIR" in
+/)
+	die "GPS_DB_PATH must not place the database directly in the filesystem root"
+	;;
+/home | /home/* | /root | /root/*)
+	die "GPS_DB_PATH must not use a home directory because the service enables ProtectHome=yes"
+	;;
+esac
 HTTP_PORT="${GPS_HTTP_PORT:-8000}"
 HTTP_HOST="${GPS_HTTP_HOST:-0.0.0.0}"
 MAX_DB_BYTES="${GPS_MAX_DB_BYTES:-4294967296}" # 4 GB
@@ -69,7 +92,7 @@ if [[ "${1:-}" == "--uninstall" ]]; then
 	systemctl daemon-reload
 	step "Removing application files…"
 	rm -rf "$INSTALL_DIR"
-	info "Uninstalled.  Data in $DATA_DIR was kept - remove manually if desired."
+	info "Uninstalled. Database files were kept and must be removed manually if no longer needed."
 	exit 0
 fi
 
@@ -102,10 +125,26 @@ info "System packages ready"
 
 # ── Directories ────────────────────────────────────────────────────────────────
 step "Creating directories…"
-mkdir -p "$INSTALL_DIR" "$DATA_DIR"
-chown "$APP_USER:$APP_USER" "$DATA_DIR"
+mkdir -p "$INSTALL_DIR"
+install -d -o "$APP_USER" -g "$APP_USER" "$DATA_DIR"
+if [[ "$DB_DIR" != "$DATA_DIR" ]]; then
+	if [[ -d "$DB_DIR" ]]; then
+		if ! runuser -u "$APP_USER" -- test -w "$DB_DIR"; then
+			die "Database directory exists but is not writable by $APP_USER: $DB_DIR"
+		fi
+	else
+		install -d -o "$APP_USER" -g "$APP_USER" "$DB_DIR"
+	fi
+fi
+for db_file in "$DB_PATH" "$DB_PATH-wal" "$DB_PATH-shm"; do
+	if [[ -e "$db_file" ]]; then
+		if ! runuser -u "$APP_USER" -- test -w "$db_file"; then
+			die "Database file exists but is not writable by $APP_USER: $db_file"
+		fi
+	fi
+done
 info "$INSTALL_DIR  (application)"
-info "$DATA_DIR  (database, owned by $APP_USER)"
+info "$DB_DIR  (database directory, writable by $APP_USER)"
 
 # ── Copy application files ─────────────────────────────────────────────────────
 step "Copying application files…"
@@ -162,6 +201,7 @@ cat >"$GENERATED_OVERRIDE" <<EOF
 User=${APP_USER}
 Group=${APP_USER}
 EOF
+write_systemd_path "$GENERATED_OVERRIDE" ReadWritePaths "$DB_DIR"
 write_systemd_environment "$GENERATED_OVERRIDE" GPS_SERIAL_PORT "$SERIAL_PORT"
 write_systemd_environment "$GENERATED_OVERRIDE" GPS_BAUD_RATE "$BAUD_RATE"
 write_systemd_environment "$GENERATED_OVERRIDE" GPS_SERIAL_MAX_LINE_BYTES "$SERIAL_MAX_LINE_BYTES"
@@ -232,7 +272,7 @@ echo -e "  Status    : ${GREEN}http://${HOST_IP}:${HTTP_PORT}/api/status${NC}"
 echo -e "  Logs      : journalctl -u ${SERVICE} -f"
 echo -e "  Config    : ${GENERATED_OVERRIDE}"
 echo -e "  Overrides : ${OVERRIDE_DIR}/local.conf"
-echo -e "  Data      : ${DATA_DIR}/data.db"
+echo -e "  Data      : ${DB_PATH}"
 echo ""
 echo -e "  Useful commands:"
 echo -e "    sudo systemctl restart ${SERVICE}"
